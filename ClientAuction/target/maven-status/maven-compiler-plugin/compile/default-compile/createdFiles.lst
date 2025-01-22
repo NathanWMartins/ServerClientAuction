@@ -1,0 +1,10 @@
+model\CryptoUtils.class
+model\PlaySound.class
+views\Views.class
+views\LoginAuction$1.class
+model\KeyManager.class
+model\MulticastClient.class
+views\LoginAuction.class
+com\mycompany\clientauction\ClientAuction.class
+views\MainAuction$1.class
+views\MainAuction.class
