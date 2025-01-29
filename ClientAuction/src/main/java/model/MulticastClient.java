@@ -28,7 +28,7 @@ public class MulticastClient {
         try {
             multicastSocket.joinGroup(groupAddress);
 
-            System.out.println("Cliente conectado ao multicast em " + MULTICAST_ADDRESS + ":" + MULTICAST_PORT);
+            System.out.println("Client conected, " + MULTICAST_ADDRESS + ":" + MULTICAST_PORT);
 
             byte[] buffer = new byte[1024];
             while (running) {
@@ -38,7 +38,7 @@ public class MulticastClient {
                 String message = new String(packet.getData(), 0, packet.getLength());
                 String[] parts = message.split(":");
                 if (!parts[0].equals("BID")) {
-                    System.out.println("Mensagem recebida: " + message);
+                    System.out.println("Message received: " + message);
 
                     switch (parts[0]) {
                         case "START_AUCTION" ->
@@ -54,14 +54,14 @@ public class MulticastClient {
                         case "AUCTION_FINISHED" ->
                             mainAuctionPanel.finishedAuction(message);
                         default ->
-                            System.out.println("Mensagem desconhecida: " + message);
+                            System.out.println("Message unknown: " + message);
                     }
                 }
 
             }
 
         } catch (IOException e) {
-            System.err.println("Erro no cliente multicast: " + e.getMessage());
+            System.err.println("Error in the client multicast: " + e.getMessage());
         }
     }
 

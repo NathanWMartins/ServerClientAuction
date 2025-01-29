@@ -34,12 +34,11 @@ public final class ServerAuction {
 
     public ServerAuction() throws NoSuchAlgorithmException {
         try {
-            multicastSocket = new MulticastSocket(MULTICAST_PORT);
             this.keyRegistry = new KeyRegistry();
             this.cryptoUtils = new CryptoUtils();
-            this.symmetricKey = cryptoUtils.generateSymmetricKey(); // Gera a chave simétrica para comunicação
+            this.symmetricKey = cryptoUtils.generateSymmetricKey();
             createItems();
-        } catch (Exception ex) {
+        } catch (NoSuchAlgorithmException ex) {
             Logger.getLogger(ServerAuction.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
@@ -49,8 +48,8 @@ public final class ServerAuction {
                 new AuctionItem("Notebook Dell Inspiron 15", 1000, 100),
                 new AuctionItem("Smartphone Samsung Galaxy S23", 800, 50),
                 new AuctionItem("Smart TV LG 55'' 4K", 1500, 200),
-                new AuctionItem("Relógio Apple Watch Series 8", 700, 50),
-                new AuctionItem("Console PlayStation 5", 2000, 300)
+                new AuctionItem("Smartwatch Apple Watch Series 8", 700, 50),
+                new AuctionItem("PlayStation 5", 2000, 300)
         );*/
         auctionItems = Arrays.asList(
                 new AuctionItem("Notebook Dell Inspiron 15", 1000, 100),
@@ -59,19 +58,18 @@ public final class ServerAuction {
     }
 
     public void verifyClient() throws Exception {
-        // Inicia o servidor TCP para validação de clientes
         serverSocket = new ServerSocket(TCP_PORT);
         try {
-            System.out.println("Waiting for connection");
+            System.out.println("Waiting for connections");
             while (true) {
                 // Aguarda conexão do cliente
-                Socket clientSocket = serverSocket.accept();
+                Socket clientSocket;
+                clientSocket = serverSocket.accept();
                 System.out.println("Client in!: " + clientSocket.getInetAddress());
 
                 BufferedReader reader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
                 PrintWriter writer = new PrintWriter(clientSocket.getOutputStream(), true);
 
-                // Lê a mensagem JSON do cliente
                 String receivedMessage = reader.readLine();
                 System.out.println("Message received: " + receivedMessage);
 
@@ -82,43 +80,41 @@ public final class ServerAuction {
                     String message = json.getString("message");
                     String signatureBase64 = json.getString("signature");
 
-                    //Load client public key
                     PublicKey clientPublicKey = keyRegistry.loadPublicKey(cpf);
 
                     if (keyRegistry.isRegistered(cpf)) {
                         byte[] signatureBytes = Base64.getDecoder().decode(signatureBase64);
                         boolean signature = cryptoUtils.verifyClientSignature(message, signatureBytes, clientPublicKey);
                         if (signature) {
-                            System.out.println("Assinatura válida. Cliente autorizado!");
+                            System.out.println("Valid signature. Client authorized!");
                             String keyBase64 = cryptoUtils.convertSymmetricKeyToBase64(symmetricKey);
-                            // Responde com o endereço multicast e chave simétrica
+
                             JSONObject response = new JSONObject();
                             response.put("status", "AUTHORIZED");
                             response.put("multicast_address", cryptoUtils.encryptWithRSA(MULTICAST_ADDRESS, clientPublicKey));
                             response.put("multicast_port", cryptoUtils.encryptWithRSA(String.valueOf(MULTICAST_PORT), clientPublicKey));
-                            response.put("symmetric_key", cryptoUtils.encryptSymmetricKeyRSA(keyBase64, clientPublicKey));
-                            
+                            response.put("symmetric_key", cryptoUtils.encryptWithRSA(keyBase64, clientPublicKey));
+
                             String jsonString = response.toString();
-                                                          
+
                             synchronized (this) {
                                 connectedClients++;
-                                System.out.println("Clientes conectados: " + connectedClients);
-                                this.notify(); // Notifica que há novos clientes conectados
+                                System.out.println("Clients on: " + connectedClients);
+                                this.notify();
                             }
-                            
+
                             System.out.println("Sending auction data...");
-                            
                             writer.println(jsonString);
                         } else {
-                            System.out.println("Assinatura inválida. Solicitação rejeitada.");
+                            System.out.println("Invalid signature.");
                             writer.println(new JSONObject().put("status", "UNAUTHORIZED").toString());
                         }
                     } else {
-                        System.out.println("CPF não registrado. Solicitação rejeitada.");
+                        System.out.println("CPF not registered.");
                         writer.println(new JSONObject().put("status", "UNAUTHORIZED").toString());
                     }
                 } catch (Exception e) {
-                    System.out.println("Erro ao processar a mensagem JSON: " + e.getMessage());
+                    System.out.println("Error processing JSON message: " + e.getMessage());
                     writer.println(new JSONObject().put("status", "ERROR").toString());
                 }
 
@@ -132,10 +128,9 @@ public final class ServerAuction {
 
     public void startAuction() throws InterruptedException {
         try {
+            multicastSocket = new MulticastSocket(MULTICAST_PORT);
             groupAddress = InetAddress.getByName(MULTICAST_ADDRESS);
             multicastSocket.joinGroup(groupAddress);
-
-            System.out.println("Auction Started, Address: " + MULTICAST_ADDRESS + ", Port: " + MULTICAST_PORT);
 
             synchronized (this) {
                 while (connectedClients < 2) {
@@ -144,7 +139,7 @@ public final class ServerAuction {
                 }
             }
 
-            System.out.println("Enough connections detected. Starting Auction...");
+            System.out.println("Starting auction, enough connections detected");
 
             for (AuctionItem item : auctionItems) {
                 itemsAuctioned++;
@@ -159,7 +154,6 @@ public final class ServerAuction {
                 auctionRunning = true;
                 handleBids();
 
-                //A cada 1 segundo enviar o tempo para os clientes
                 ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
                 final AtomicInteger timeLeft = new AtomicInteger(15);
 
@@ -178,8 +172,8 @@ public final class ServerAuction {
                     }
                 };
 
-                //Lembra de a cada 1 segundo enviar o tempo novamente
                 scheduler.scheduleAtFixedRate(auctionTask, 0, 1, TimeUnit.SECONDS);
+
                 while (auctionRunning) {
                     Thread.sleep(3000);
                 }
@@ -226,10 +220,10 @@ public final class ServerAuction {
                 DatagramPacket pkt = new DatagramPacket(buffer, buffer.length, groupAddress, MULTICAST_PORT);
                 multicastSocket.send(pkt);
 
-                System.out.println("Enviado informações do item " + currentItem.getName() + " para o leilão");
+                System.out.println("Sending info from the item " + currentItem.getName() + " to the auction");
 
             } catch (IOException e) {
-                System.err.println("Erro ao enviar informações do leilão: " + e.getMessage());
+                System.err.println("Error sending info: " + e.getMessage());
             }
         });
     }
@@ -246,21 +240,17 @@ public final class ServerAuction {
                     String bidMessage;
 
                     try {
-                        // Tentar descriptografar a mensagem
                         bidMessage = cryptoUtils.decryptMessageAES(encryptedMessage, symmetricKey);
                         System.out.println("Decrypted auction: " + bidMessage);
                     } catch (Exception e) {
-                        // Caso a descriptografia falhe, a mensagem não é um lance
                         continue;
                     }
 
-                    // Validar se a mensagem é um lance (prefixo BID:)
                     if (!bidMessage.startsWith("BID:")) {
                         System.out.println("Ignored message (not a user bid): " + bidMessage);
                         continue;
                     }
 
-                    // Processar mensagem de lance
                     String[] parts = bidMessage.substring(4).split(",");
                     if (parts.length < 2) {
                         System.err.println("Invalid message format: " + bidMessage);
@@ -276,7 +266,6 @@ public final class ServerAuction {
                             currentHighestBidder = bidderCPF;
                             System.out.println("New highest bid: R$" + currentHighestBid + " by: " + currentHighestBidder);
 
-                            // Notificar clientes sobre o novo maior lance
                             broadcastAuctionInfo("newWinner");
                         }
                     }
@@ -301,9 +290,9 @@ public final class ServerAuction {
             groupAddress = InetAddress.getByName(MULTICAST_ADDRESS);
             DatagramPacket packet = new DatagramPacket(buffer, buffer.length, groupAddress, MULTICAST_PORT);
             socket.send(packet);
-            System.out.println("Tempo restante enviado: " + time + " segundos");
+            System.out.println("Time left sended: " + time + " seconds");
         } catch (IOException e) {
-            System.err.println("Erro ao enviar tempo restante: " + e.getMessage());
+            System.err.println("Erroe sending the time left: " + e.getMessage());
         }
     }
 
@@ -323,7 +312,7 @@ public final class ServerAuction {
 
             System.out.println(winnerMessage);
         } catch (IOException e) {
-            System.err.println("Erro ao anunciar vencedor: " + e.getMessage());
+            System.err.println("Error announcing winner: " + e.getMessage());
         }
     }
 
@@ -349,7 +338,6 @@ public final class ServerAuction {
         ServerAuction server = new ServerAuction();
         ExecutorService executorMain = Executors.newFixedThreadPool(2);
         try {
-            // Submete as tarefas para execução em threads separadas
             executorMain.submit(() -> {
                 try {
                     server.verifyClient();

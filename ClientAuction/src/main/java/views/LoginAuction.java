@@ -81,7 +81,7 @@ public class LoginAuction extends javax.swing.JPanel {
         String cpf = TF_CPF.getText().trim();
         String message = TF_Message.getText().trim();
         if (cpf.isEmpty() || message.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "CPF e Mensagem são obrigatórios.", "Erro", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "CPF and Message must not be empty.", "Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
         try {
@@ -90,12 +90,13 @@ public class LoginAuction extends javax.swing.JPanel {
             Logger.getLogger(LoginAuction.class.getName()).log(Level.SEVERE, null, ex);
         }
         try {
-            // Gera a assinatura digital da mensagem
-            System.out.println("Chave privada: " + keyManager.getPrivateKey());
+            System.out.println("Private Key: " + keyManager.getPrivateKey());
+            
             byte[] signature = cryptoUtils.generateSignature(message, keyManager.getPrivateKey());
             String signatureBase64 = Base64.getEncoder().encodeToString(signature);
 
-            Socket socket = new Socket("127.0.0.1", 6000);
+            Socket socket;
+            socket = new Socket("127.0.0.1", 6000);
             PrintWriter output = new PrintWriter(socket.getOutputStream(), true);
             BufferedReader input = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
@@ -104,7 +105,6 @@ public class LoginAuction extends javax.swing.JPanel {
             json.put("message", message);
             json.put("signature", signatureBase64);
 
-            // Envia os dados ao servidor via TCP
             String jsonString = json.toString();
             System.out.println("Sending message to server...");
             output.println(jsonString);

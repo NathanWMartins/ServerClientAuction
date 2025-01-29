@@ -12,7 +12,6 @@ import javax.crypto.spec.SecretKeySpec;
  */
 public class CryptoUtils {
 
-    //Gera a assinatura digital de uma mensagem.
     public byte[] generateSignature(String message, PrivateKey privateKey) throws Exception {
         MessageDigest digest = MessageDigest.getInstance("SHA-256");
         byte[] messageHash = digest.digest(message.getBytes());
@@ -27,24 +26,7 @@ public class CryptoUtils {
     public String convertPublicKeyToBase64(PublicKey key) {
         return Base64.getEncoder().encodeToString(key.getEncoded());
     }
-
-    public String decryptSymmetricKey(String encryptedKey, PrivateKey privateKey) throws Exception {
-        try {
-            byte[] encryptedBytes = Base64.getDecoder().decode(encryptedKey);
-            Cipher cipher = Cipher.getInstance("RSA");
-            cipher.init(Cipher.DECRYPT_MODE, privateKey);
-            byte[] decryptedBytes = cipher.doFinal(encryptedBytes);
-            return new String(decryptedBytes);
-        } catch (InvalidKeyException | NoSuchAlgorithmException | BadPaddingException | IllegalBlockSizeException | NoSuchPaddingException e) {
-            throw new Exception("Erro ao descriptografar a chave simétrica: " + e.getMessage(), e);
-        }
-    }
-
-    public SecretKey convertBase64ToSecretKey(String base64Key) {
-        byte[] decodedKey = Base64.getDecoder().decode(base64Key);
-        return new SecretKeySpec(decodedKey, 0, decodedKey.length, "AES");
-    }
-
+    
     public String encryptMessageAES(String message, SecretKey secretKey) throws Exception {
         try {
             Cipher cipher = Cipher.getInstance("AES");
@@ -54,12 +36,11 @@ public class CryptoUtils {
 
             System.out.println("Mensagem criptografada com AES: " + encryptedMessage);
             return encryptedMessage;
-        } catch (Exception e) {
+        } catch (InvalidKeyException | NoSuchAlgorithmException | BadPaddingException | IllegalBlockSizeException | NoSuchPaddingException e) {
             System.err.println("Erro ao criptografar a mensagem com AES: " + e.getMessage());
-            e.printStackTrace();
             throw new Exception("Erro ao criptografar a mensagem com AES", e);
         }
-    }
+    }   
 
     public String decryptMessageAES(String encryptedMessage, SecretKey symmetricKey) throws Exception {
         try {
@@ -72,7 +53,7 @@ public class CryptoUtils {
 
             // Retornar a mensagem descriptografada como String
             return new String(decryptedBytes);
-        } catch (Exception e) {
+        } catch (InvalidKeyException | NoSuchAlgorithmException | BadPaddingException | IllegalBlockSizeException | NoSuchPaddingException e) {
             throw new Exception("Erro ao descriptografar a mensagem AES: " + e.getMessage(), e);
         }
     }
@@ -91,5 +72,21 @@ public class CryptoUtils {
         // Retorna como string
         return new String(decryptedBytes);
     }
-
+    
+    public String decryptSymmetricKey(String encryptedKey, PrivateKey privateKey) throws Exception {
+        try {
+            byte[] encryptedBytes = Base64.getDecoder().decode(encryptedKey);
+            Cipher cipher = Cipher.getInstance("RSA");
+            cipher.init(Cipher.DECRYPT_MODE, privateKey);
+            byte[] decryptedBytes = cipher.doFinal(encryptedBytes);
+            return new String(decryptedBytes);
+        } catch (InvalidKeyException | NoSuchAlgorithmException | BadPaddingException | IllegalBlockSizeException | NoSuchPaddingException e) {
+            throw new Exception("Erro ao descriptografar a chave simétrica: " + e.getMessage(), e);
+        }
+    }
+    
+    public SecretKey convertBase64ToSecretKey(String base64Key) {
+        byte[] decodedKey = Base64.getDecoder().decode(base64Key);
+        return new SecretKeySpec(decodedKey, 0, decodedKey.length, "AES");
+    }   
 }

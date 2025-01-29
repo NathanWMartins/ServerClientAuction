@@ -80,12 +80,12 @@ public final class MainAuction extends javax.swing.JPanel {
         LB_MinValueBetweenBids.setFont(new java.awt.Font("Monospaced", 1, 14)); // NOI18N
         LB_MinValueBetweenBids.setForeground(new java.awt.Color(0, 0, 0));
         LB_MinValueBetweenBids.setText("R$0 *");
-        add(LB_MinValueBetweenBids, new org.netbeans.lib.awtextra.AbsoluteConstraints(500, 100, -1, 20));
+        add(LB_MinValueBetweenBids, new org.netbeans.lib.awtextra.AbsoluteConstraints(470, 100, -1, 20));
 
         LB_txtBid.setFont(new java.awt.Font("Monospaced", 1, 14)); // NOI18N
         LB_txtBid.setForeground(new java.awt.Color(0, 0, 0));
         LB_txtBid.setText("*Minimum value between bids:");
-        add(LB_txtBid, new org.netbeans.lib.awtextra.AbsoluteConstraints(250, 100, -1, 20));
+        add(LB_txtBid, new org.netbeans.lib.awtextra.AbsoluteConstraints(220, 100, -1, 20));
 
         jLabel1.setFont(new java.awt.Font("Monospaced", 3, 24)); // NOI18N
         jLabel1.setForeground(new java.awt.Color(51, 51, 51));
@@ -119,7 +119,7 @@ public final class MainAuction extends javax.swing.JPanel {
         LB_ItemLeiloado.setFont(new java.awt.Font("Monospaced", 1, 14)); // NOI18N
         LB_ItemLeiloado.setForeground(new java.awt.Color(0, 0, 0));
         LB_ItemLeiloado.setText("Waiting...");
-        add(LB_ItemLeiloado, new org.netbeans.lib.awtextra.AbsoluteConstraints(330, 130, 100, -1));
+        add(LB_ItemLeiloado, new org.netbeans.lib.awtextra.AbsoluteConstraints(300, 130, 270, -1));
 
         BT_EnviarProposta.setBackground(new java.awt.Color(51, 51, 51));
         BT_EnviarProposta.setFont(new java.awt.Font("Monospaced", 1, 14)); // NOI18N
