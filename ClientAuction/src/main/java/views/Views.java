@@ -1,6 +1,7 @@
 package views;
 
 import java.awt.BorderLayout;
+import java.io.IOException;
 
 /**
  *
@@ -11,7 +12,7 @@ public class Views extends javax.swing.JFrame {
     static MainAuction mainAuction;
     
     
-    public Views() {
+    public Views() throws IOException {
         initComponents();
         viewLogin = new LoginAuction(); 
         

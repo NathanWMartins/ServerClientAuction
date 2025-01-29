@@ -61,4 +61,35 @@ public class CryptoUtils {
         }
     }
 
+    public String decryptMessageAES(String encryptedMessage, SecretKey symmetricKey) throws Exception {
+        try {
+            // Configurar o cifrador para AES no modo de descriptografia
+            Cipher cipher = Cipher.getInstance("AES");
+            cipher.init(Cipher.DECRYPT_MODE, symmetricKey);
+
+            // Decodificar a mensagem criptografada de Base64 e descriptografá-la
+            byte[] decryptedBytes = cipher.doFinal(Base64.getDecoder().decode(encryptedMessage));
+
+            // Retornar a mensagem descriptografada como String
+            return new String(decryptedBytes);
+        } catch (Exception e) {
+            throw new Exception("Erro ao descriptografar a mensagem AES: " + e.getMessage(), e);
+        }
+    }
+
+    public String decryptMessageRSA(String encryptedMessageBase64, PrivateKey privateKey) throws Exception {
+        // Decodifica o Base64
+        byte[] encryptedBytes = Base64.getDecoder().decode(encryptedMessageBase64);
+
+        // Inicializa o Cipher para descriptografia
+        Cipher cipher = Cipher.getInstance("RSA");
+        cipher.init(Cipher.DECRYPT_MODE, privateKey);
+
+        // Descriptografa os dados
+        byte[] decryptedBytes = cipher.doFinal(encryptedBytes);
+
+        // Retorna como string
+        return new String(decryptedBytes);
+    }
+
 }

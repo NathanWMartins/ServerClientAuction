@@ -5,6 +5,7 @@ import java.security.*;
 import java.security.spec.*;
 import java.util.Base64;
 import javax.crypto.*;
+import javax.crypto.spec.SecretKeySpec;
 
 /**
  *
@@ -50,10 +51,17 @@ public class CryptoUtils {
 
     // Encripta a chave simétrica com a chave pública do cliente
     public String encryptSymmetricKeyRSA(String symmetricKey, PublicKey publicKey) throws Exception {
-        Cipher cipher = Cipher.getInstance("RSA"); // Initializes the Cipher with the RSA algorithm
-        cipher.init(Cipher.ENCRYPT_MODE, publicKey); // Sets the Cipher for encryption mode using the public key
-        byte[] encryptedBytes = cipher.doFinal(symmetricKey.getBytes()); // Encrypts the data and stores it in encryptedBytes
+        Cipher cipher = Cipher.getInstance("RSA");
+        cipher.init(Cipher.ENCRYPT_MODE, publicKey);
+        byte[] encryptedBytes = cipher.doFinal(symmetricKey.getBytes());
         return Base64.getEncoder().encodeToString(encryptedBytes);
+    }
+
+    public String encryptWithRSA(String data, PublicKey publicKey) throws Exception {
+        Cipher cipher = Cipher.getInstance("RSA");
+        cipher.init(Cipher.ENCRYPT_MODE, publicKey);
+        byte[] encryptedData = cipher.doFinal(data.getBytes("UTF-8"));
+        return Base64.getEncoder().encodeToString(encryptedData);
     }
 
     public String decryptMessageAES(String encryptedMessage, SecretKey symmetricKey) throws Exception {
@@ -70,6 +78,17 @@ public class CryptoUtils {
         } catch (Exception e) {
             throw new Exception("Erro ao descriptografar a mensagem AES: " + e.getMessage(), e);
         }
+    }
+
+    public String encryptAuctionsMessageAES(String message, String base64Key) throws Exception {
+        byte[] decodedKey = Base64.getDecoder().decode(base64Key);
+        SecretKey secretKey = new SecretKeySpec(decodedKey, 0, decodedKey.length, "AES");
+        Cipher cipher = Cipher.getInstance("AES");
+        cipher.init(Cipher.ENCRYPT_MODE, secretKey);
+
+        byte[] encryptedBytes = cipher.doFinal(message.getBytes());
+
+        return Base64.getEncoder().encodeToString(encryptedBytes);
     }
 
 }

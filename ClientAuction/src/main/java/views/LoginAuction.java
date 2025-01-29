@@ -3,10 +3,11 @@ package views;
 import java.io.*;
 import javax.swing.*;
 import model.*;
+import java.util.*;
+import java.util.logging.*;
 import java.awt.BorderLayout;
 import java.net.Socket;
 import java.security.PrivateKey;
-import java.util.Base64;
 import org.json.JSONObject;
 
 /**
@@ -16,17 +17,9 @@ import org.json.JSONObject;
 public class LoginAuction extends javax.swing.JPanel {
 
     private final KeyManager keyManager;
-    //private final MulticastClient multicastClient;
     private final CryptoUtils cryptoUtils;
 
-    //user 1:
-    public static final String PUBLIC_KEY_BASE64 = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAwQE2546Kw5F80HCSWAQnjeL03RNzTWMzkVa4ttQU0VBMu88Eq1hBmyOWOjDtckq3RA5lcoE+LCgw5vUV5FKG934TIrFYORCWujflZ7qpkmCDjb0+ePcWQKS8/pPbQtw/2GWJ7HdqH9C0GK5abGM8OJc+kCQ6W8HCts1if/2UrnKI2+L4yrmOo1dpAWoLlzbmXtxFyRxxruTTgTQ7y5KSWVGwOzlqrOzZvP0YjFyzjIfsyVz/IOP5F7IZfK6dja/I1A4Old4qsGslIfmMHesHduXbCM5ZC1bJHqDLtpUkcjSr/A9M0iJQbWv7hA6g/0Q24XUN4B+NtFAs1ki5NhPGjQIDAQAB";
-    public static final String PRIVATE_KEY_BASE64 = "MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDBATbnjorDkXzQcJJYBCeN4vTdE3NNYzORVri21BTRUEy7zwSrWEGbI5Y6MO1ySrdEDmVygT4sKDDm9RXkUob3fhMisVg5EJa6N+VnuqmSYIONvT549xZApLz+k9tC3D/YZYnsd2of0LQYrlpsYzw4lz6QJDpbwcK2zWJ//ZSucojb4vjKuY6jV2kBaguXNuZe3EXJHHGu5NOBNDvLkpJZUbA7OWqs7Nm8/RiMXLOMh+zJXP8g4/kXshl8rp2Nr8jUDg6V3iqwayUh+Ywd6wd25dsIzlkLVskeoMu2lSRyNKv8D0zSIlBta/uEDqD/RDbhdQ3gH420UCzWSLk2E8aNAgMBAAECggEADp5s7jUZxZ5rec5NB2WpKVIbgfNLNH1jFosfCpodyYzvgvo3PFM/BOU5J8c09Qc7wmfkvzuS3f1dVuERe23U00I1aNdN+2SKRiids7Grzm6JCF9hMABnKxZPSmkgnnvYSifGvqZ831QLkCMErlkF4rNyBbD4yqJugTIlV9R5Qo1Ai7d9e/Ura2zDY1sBsnxffpL0PGu0mwaXlqQJnsoNeuK07ihqqRRRfsP+CWLaQu7wvzy+Xy8YcXjCsKtr6FkzlF0T+nAo0hnAbGAoaNR1JrnvW5bgrxh6rrk1KS82SX80O8eLUTCfX2F5T3/vFoGkjifcjGUUkri9LbP96rI1gQKBgQDya/P6GrE2h7dzg5Qli1zt5ZU9XgHzF0Ke7cfuSslF0STo/GiMus2U8kA6wOhztA8GnKatxd2zvYTSSGZVkCm5fI+Nlvx6ZwuURJyPinGl8fyIHK5HlTjBDQ4NgQR97jr8Pvvk+L0qehbNe5wuJE2gv4boR5LcwVWVa9Uz3h+dtQKBgQDL0K3z/UCxMUZ+C9ezbe+8FiJgHzGLp1pIhZ8JE62kkT3o00WVDMkdcE7f/ieHim84XsM7FJsFlLMmH/UeVSNAxP9qH3eyO6A1k7B93bEum9swZOSk2oSrfNjizf2YqGkyk2rqzW8FW3aP9+FL8qX6MPez62RqaOgH6/AjA17MeQKBgQCdtufyphz22hLa3xap2mIqD7wpQZjJGy/nj9EL0bHiby+xOE2YiQuoxHZPAyP36oQADDhQQ7N59WmNGTcioXjTyRrnxfwaciHRY1Xr+Oj5Sla+AtLLlWRoDGNBG9fdSfksFJnynHUNRoLBSpMQXeP3GcPeKHp+jnVskcwSQ4eUJQKBgFPpeJTpgYbySJmAerAO5RLE8iYs8ZMTtaICEXYFOgp1Gc4Pnag9+Vc7c93Yn6G4Jw5IRYy/cQudKxzZL2vrlXYHJTkl93vT/KPSSGmpqlcMJ/QGtfQBW3nXDtxh/rSpMZZ3Bx/gsIK+I1QmtAU2w4r8Oh9DHLaKtmz8gIOJ0a/RAoGBAN1QPTeXOFlJZ2JjVKfQBRroPoPcMfL4Ts5mZXDaRA2GNMypwy7SjvZBlR3Y6zN+34EuKn3LtA9Wp9CMbHpuqCThB1RmxN8pafNQfxYKS3DTvC//kSNdBK+5GGoWKBr4oovF7ZCH7eWtrNq4fy/wXC5nyGtdGmYAbKgfbsC4AJ6E";
-    //user 2:
-    //public static final String PUBLIC_KEY_BASE64 = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAu54fYijPozPW7sDGLgFwQZ8d12edkxl4MBaFRMMgwuQ/m0kDjueg+czWiZtRHb3TJV6LnVxhJSg2p2W7EMODO7a/A223EBgZI2UkN+BKGpvvNHu/bf/XO+rOWzafKLdt5+8OY59xHRrmDri4AaunKaPNggNbXtg4tF1IO0Bz2fv7kQF3niSF3bkImNU9RE8HgU25nXrJe6N+Vtli26lMzw3LrckRu2Ue9JSeaCXJtTqISHcsC4fRa8EN9rKbCx9yphkfmGg6VlLqvk0r1KCwCkWGnG3AC1p4b1flvjgCGTlW9KgZB8ccOXsG/5WXirxqJMAirD/RdsF+IkHmI5W4qwIDAQAB";
-    //public static final String PRIVATE_KEY_BASE64 = "MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC7nh9iKM+jM9buwMYuAXBBnx3XZ52TGXgwFoVEwyDC5D+bSQOO56D5zNaJm1EdvdMlXoudXGElKDanZbsQw4M7tr8DbbcQGBkjZSQ34Eoam+80e79t/9c76s5bNp8ot23n7w5jn3EdGuYOuLgBq6cpo82CA1te2Di0XUg7QHPZ+/uRAXeeJIXduQiY1T1ETweBTbmdesl7o35W2WLbqUzPDcutyRG7ZR70lJ5oJcm1OohIdywLh9FrwQ32spsLH3KmGR+YaDpWUuq+TSvUoLAKRYacbcALWnhvV+W+OAIZOVb0qBkHxxw5ewb/lZeKvGokwCKsP9F2wX4iQeYjlbirAgMBAAECggEAG/dpBC/DK7epfTNdFzR9sDpwr1Axq+CrCrgAq4xOkN6HILWUgzPByhqfjCmLwNwv4i0isJU5odlJtFA0vz31jOwjsvYiyJJfBOipqm6TfT3rPS6JDXOKeNL6aZxNwzr8dgsrYOw+ZzFAQ8eDHjShGVLialPnxc6DPVd+Ud68pixotFp4iPdOgV4WYrctj5Rj7T4oALHwKzeXik44epcgoAydEwbhHDcYW1IVfUcZMUSjPzKQgrE3iH1D9ykZ3dIH0hF4QhtfjgUhDdjWOQDQd+ypu6wF9dEdV88B781GEfoQwrsWeqvfmbhtWzVO0bs8FZTYWiRAchE6L6W8jhEMwQKBgQDCD16BRnRHJ31y9ZOp7UKiw+vlvccTtZAh9ahR85qXJnCYfURl7zLCelEDWd4LqOSZssSkhzZxxL4silW5iqa4ktbCNhzdIabHva0p88HABzAS80rvyMlpdyqq6grCWlg8DGt3nA85mvt7ObMDkdP2Lec9ITd6rJ1z6Lflof9/4QKBgQD3gFkQ7fQ8SIWK31s/4eK2uD5kPjMz3qmaOhl8pD+TsR/h/RQQKWCmriOdKz95se6DHvdGDJfBWoXr66Py9OeVudATIQ2Ai+RfF4gHEj2hnM0HeeubxmCnLA3XrDv60ao87VMb9pjt+ghjZm2EnWx690S1CY/2ZeNA8d6WZ+p6CwKBgQC8zRkj6vjb9Uau3tAQRf5LvxO2DCIwQbf94jQlrzzbC5IGOfGevs6CuWAyQ2+tpl7qTivU6pwEqeZgDSKEBqpX7ry0bNM+LSxHLnnX1AjPm+6gsUVZ7t5OFptTd6qKFj28BlVUJGgHoopDBArvUSSIYXaVWcjRODlj+KlZ53dd4QKBgQDkbhJGPMjphqmyZbmreUktCVmUXZAWdJCmpq71Sgbfwl/BzTniPL5WuGxoWA0qvZ18aW0huuepbmoiN4dG6uB/YVL5BM2YcgTh+y7yD9TQP49AMjfRu0Njp5ZTE0T8ltx/hS7qpSu6oMVzMIsuFbmUuHkyedPkP1+ChnnA6cIQxwKBgCSV/VHrJPNJs+9DJ73hHU65dDcs3YViI3sCvitJiuokMXnTAev340rMvJ7AKVdwhxGtCEZNYiWJFAYszczPdwgmhocgdQTmIcMKFLuj1DX+CswslHaNQDEVhLahMy9yGSznWsfanWeu22U5bz/bawQVw8QbrqatlliyPkunHwam";
-
-    public LoginAuction() {
+    public LoginAuction() throws IOException {
         this.keyManager = new KeyManager();
         this.cryptoUtils = new CryptoUtils();
         initComponents();
@@ -49,8 +42,8 @@ public class LoginAuction extends javax.swing.JPanel {
 
         jLabel1.setFont(new java.awt.Font("Monospaced", 3, 24)); // NOI18N
         jLabel1.setForeground(new java.awt.Color(51, 51, 51));
-        jLabel1.setText("LEILÃO BENEFICENTE");
-        add(jLabel1, new org.netbeans.lib.awtextra.AbsoluteConstraints(222, 80, -1, -1));
+        jLabel1.setText("CHARITY AUCTION");
+        add(jLabel1, new org.netbeans.lib.awtextra.AbsoluteConstraints(260, 80, -1, -1));
 
         jLabel2.setFont(new java.awt.Font("Monospaced", 1, 14)); // NOI18N
         jLabel2.setText("CPF:");
@@ -87,12 +80,15 @@ public class LoginAuction extends javax.swing.JPanel {
     private void BT_RequestAccessMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_BT_RequestAccessMouseClicked
         String cpf = TF_CPF.getText().trim();
         String message = TF_Message.getText().trim();
-
         if (cpf.isEmpty() || message.isEmpty()) {
             JOptionPane.showMessageDialog(this, "CPF e Mensagem são obrigatórios.", "Erro", JOptionPane.ERROR_MESSAGE);
             return;
         }
-
+        try {
+            keyManager.generateAndSaveKeyPair(cpf);
+        } catch (IOException ex) {
+            Logger.getLogger(LoginAuction.class.getName()).log(Level.SEVERE, null, ex);
+        }
         try {
             // Gera a assinatura digital da mensagem
             System.out.println("Chave privada: " + keyManager.getPrivateKey());
@@ -107,7 +103,6 @@ public class LoginAuction extends javax.swing.JPanel {
             json.put("cpf", cpf);
             json.put("message", message);
             json.put("signature", signatureBase64);
-            json.put("public_key", cryptoUtils.convertPublicKeyToBase64(keyManager.getPublicKey()));
 
             // Envia os dados ao servidor via TCP
             String jsonString = json.toString();
@@ -123,11 +118,16 @@ public class LoginAuction extends javax.swing.JPanel {
             if (responseJson.getString("status").equals("AUTHORIZED")) {
                 // Obtém e decodifica a chave simétrica
                 String symmetricKeyBase64 = responseJson.getString("symmetric_key");
-                int multicastPort = responseJson.getInt("multicast_port");
-                String multicastAddr = responseJson.getString("multicast_address");
+                String multicastPortCrypto = responseJson.getString("multicast_port");
+                String multicastAddrCrypto = responseJson.getString("multicast_address");
+                
                 PrivateKey privateKey = keyManager.getPrivateKey();
+                
                 String symmetricKey = cryptoUtils.decryptSymmetricKey(symmetricKeyBase64, privateKey);
+                int multicastPort = Integer.parseInt(cryptoUtils.decryptMessageRSA(multicastPortCrypto, privateKey));
+                String multicastAddr = cryptoUtils.decryptMessageRSA(multicastAddrCrypto, privateKey);
 
+                
 
                 Views.mainAuction = new MainAuction(cpf, multicastPort, multicastAddr, symmetricKey);
                 JFrame janela = (JFrame) SwingUtilities.getWindowAncestor(Views.viewLogin);

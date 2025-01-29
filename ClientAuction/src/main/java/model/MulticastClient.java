@@ -65,10 +65,6 @@ public class MulticastClient {
         }
     }
 
-    public void stopListening() {
-        running = false;
-    }
-
     public void sendBid(String cpf, int value, String key) throws Exception {
         try {
             String message = "BID: CPF:" + cpf + ",VALUE:" + value;
@@ -84,4 +80,13 @@ public class MulticastClient {
         }
     }
 
+    public void stopListening() throws IOException {
+        running = false;
+        if (!multicastSocket.isClosed()) {
+            try (multicastSocket) {
+                multicastSocket.leaveGroup(groupAddress);
+            }
+            System.out.println("Multicast connection closed.");
+        }
+    }
 }

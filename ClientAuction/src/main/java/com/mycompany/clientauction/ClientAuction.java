@@ -1,5 +1,6 @@
 package com.mycompany.clientauction;
 
+import java.io.IOException;
 import views.Views;
 
 /**
@@ -8,7 +9,7 @@ import views.Views;
  */
 public class ClientAuction {
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         Views v = new Views();
         v.setLocationRelativeTo(null);
         v.setVisible(true);

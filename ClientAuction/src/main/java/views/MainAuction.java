@@ -17,11 +17,10 @@ public final class MainAuction extends javax.swing.JPanel {
 
     private final PlaySound ps = new PlaySound();
     private MulticastClient multicastClient = null;
-    private final String cpf, symmetricKey;
+    private final String symmetricKey;
 
     public MainAuction(String cpf, int multicastP, String multicastA, String symmetricKey) throws IOException {
         initComponents();
-        this.cpf = cpf;
         this.symmetricKey = symmetricKey;
         LB_CPF.setText(cpf);
         startMulticastCommunication(multicastP, multicastA);
@@ -38,8 +37,8 @@ public final class MainAuction extends javax.swing.JPanel {
         LB_TempoRestante = new javax.swing.JLabel();
         TF_LanceAtual = new javax.swing.JTextField();
         LB_LanceAtual = new javax.swing.JLabel();
-        LB_ValorMinEntreLances = new javax.swing.JLabel();
-        LB_txtLance = new javax.swing.JLabel();
+        LB_MinValueBetweenBids = new javax.swing.JLabel();
+        LB_txtBid = new javax.swing.JLabel();
         jLabel1 = new javax.swing.JLabel();
         LB_CPF1 = new javax.swing.JLabel();
         LB_CPF = new javax.swing.JLabel();
@@ -59,38 +58,38 @@ public final class MainAuction extends javax.swing.JPanel {
 
         LB_Usuario.setFont(new java.awt.Font("Monospaced", 1, 14)); // NOI18N
         LB_Usuario.setForeground(new java.awt.Color(0, 0, 0));
-        LB_Usuario.setText("Usuário do Lance:");
-        add(LB_Usuario, new org.netbeans.lib.awtextra.AbsoluteConstraints(350, 260, 160, 20));
+        LB_Usuario.setText("User winning:");
+        add(LB_Usuario, new org.netbeans.lib.awtextra.AbsoluteConstraints(400, 260, 120, 20));
 
         TF_TempoRestante.setFont(new java.awt.Font("Monospaced", 1, 12)); // NOI18N
         add(TF_TempoRestante, new org.netbeans.lib.awtextra.AbsoluteConstraints(510, 180, 120, 30));
 
         LB_TempoRestante.setFont(new java.awt.Font("Monospaced", 1, 14)); // NOI18N
         LB_TempoRestante.setForeground(new java.awt.Color(0, 0, 0));
-        LB_TempoRestante.setText("Tempo Restante:");
-        add(LB_TempoRestante, new org.netbeans.lib.awtextra.AbsoluteConstraints(350, 190, 160, 20));
+        LB_TempoRestante.setText("Time left:");
+        add(LB_TempoRestante, new org.netbeans.lib.awtextra.AbsoluteConstraints(420, 190, 90, 20));
 
         TF_LanceAtual.setFont(new java.awt.Font("Monospaced", 1, 12)); // NOI18N
         add(TF_LanceAtual, new org.netbeans.lib.awtextra.AbsoluteConstraints(170, 250, 120, 30));
 
         LB_LanceAtual.setFont(new java.awt.Font("Monospaced", 1, 14)); // NOI18N
         LB_LanceAtual.setForeground(new java.awt.Color(0, 0, 0));
-        LB_LanceAtual.setText("Lance atual:");
+        LB_LanceAtual.setText("Current bid:");
         add(LB_LanceAtual, new org.netbeans.lib.awtextra.AbsoluteConstraints(60, 260, 120, 20));
 
-        LB_ValorMinEntreLances.setFont(new java.awt.Font("Monospaced", 1, 14)); // NOI18N
-        LB_ValorMinEntreLances.setForeground(new java.awt.Color(0, 0, 0));
-        LB_ValorMinEntreLances.setText("R$0 *");
-        add(LB_ValorMinEntreLances, new org.netbeans.lib.awtextra.AbsoluteConstraints(500, 100, -1, 20));
+        LB_MinValueBetweenBids.setFont(new java.awt.Font("Monospaced", 1, 14)); // NOI18N
+        LB_MinValueBetweenBids.setForeground(new java.awt.Color(0, 0, 0));
+        LB_MinValueBetweenBids.setText("R$0 *");
+        add(LB_MinValueBetweenBids, new org.netbeans.lib.awtextra.AbsoluteConstraints(500, 100, -1, 20));
 
-        LB_txtLance.setFont(new java.awt.Font("Monospaced", 1, 14)); // NOI18N
-        LB_txtLance.setForeground(new java.awt.Color(0, 0, 0));
-        LB_txtLance.setText("*Valor mínimo entre lances:");
-        add(LB_txtLance, new org.netbeans.lib.awtextra.AbsoluteConstraints(260, 100, -1, 20));
+        LB_txtBid.setFont(new java.awt.Font("Monospaced", 1, 14)); // NOI18N
+        LB_txtBid.setForeground(new java.awt.Color(0, 0, 0));
+        LB_txtBid.setText("*Minimum value between bids:");
+        add(LB_txtBid, new org.netbeans.lib.awtextra.AbsoluteConstraints(250, 100, -1, 20));
 
         jLabel1.setFont(new java.awt.Font("Monospaced", 3, 24)); // NOI18N
         jLabel1.setForeground(new java.awt.Color(51, 51, 51));
-        jLabel1.setText("BEM VINDO AO LEILÃO");
+        jLabel1.setText("Welcome");
         add(jLabel1, new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 33, 290, 50));
 
         LB_CPF1.setFont(new java.awt.Font("Monospaced", 1, 14)); // NOI18N
@@ -108,8 +107,8 @@ public final class MainAuction extends javax.swing.JPanel {
 
         LB_LanceInicial.setFont(new java.awt.Font("Monospaced", 1, 14)); // NOI18N
         LB_LanceInicial.setForeground(new java.awt.Color(0, 0, 0));
-        LB_LanceInicial.setText("Lance inicial:");
-        add(LB_LanceInicial, new org.netbeans.lib.awtextra.AbsoluteConstraints(40, 190, -1, 20));
+        LB_LanceInicial.setText("Inicial bid:");
+        add(LB_LanceInicial, new org.netbeans.lib.awtextra.AbsoluteConstraints(60, 190, -1, 20));
 
         jSeparator1.setForeground(new java.awt.Color(0, 0, 0));
         add(jSeparator1, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 370, 730, 20));
@@ -119,13 +118,13 @@ public final class MainAuction extends javax.swing.JPanel {
 
         LB_ItemLeiloado.setFont(new java.awt.Font("Monospaced", 1, 14)); // NOI18N
         LB_ItemLeiloado.setForeground(new java.awt.Color(0, 0, 0));
-        LB_ItemLeiloado.setText("Aguardando...");
-        add(LB_ItemLeiloado, new org.netbeans.lib.awtextra.AbsoluteConstraints(310, 130, -1, -1));
+        LB_ItemLeiloado.setText("Waiting...");
+        add(LB_ItemLeiloado, new org.netbeans.lib.awtextra.AbsoluteConstraints(330, 130, 100, -1));
 
         BT_EnviarProposta.setBackground(new java.awt.Color(51, 51, 51));
         BT_EnviarProposta.setFont(new java.awt.Font("Monospaced", 1, 14)); // NOI18N
         BT_EnviarProposta.setForeground(new java.awt.Color(255, 255, 255));
-        BT_EnviarProposta.setText("Enviar Proposta");
+        BT_EnviarProposta.setText("Send Bid");
         BT_EnviarProposta.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseClicked(java.awt.event.MouseEvent evt) {
                 BT_EnviarPropostaMouseClicked(evt);
@@ -144,7 +143,7 @@ public final class MainAuction extends javax.swing.JPanel {
                 JOptionPane.showMessageDialog(this, "The bid vlaue must be higher then the current bid.");
                 return;
             }
-            int minValue = Integer.parseInt(LB_ValorMinEntreLances.getText().replaceAll("[^0-9]", ""));
+            int minValue = Integer.parseInt(LB_MinValueBetweenBids.getText().replaceAll("[^0-9]", ""));
             int difValues = userBid - currentBid;
 
             if (difValues < minValue) {
@@ -189,7 +188,7 @@ public final class MainAuction extends javax.swing.JPanel {
             } else if (line.startsWith("Lance mínimo:")) {
                 TF_LanceInicial.setText(line.substring("Lance mínimo:".length()).trim());
             } else if (line.startsWith("Valor mínimo entre lances:")) {
-                LB_ValorMinEntreLances.setText(line.substring("Valor mínimo entre lances:".length()).trim());
+                LB_MinValueBetweenBids.setText(line.substring("Valor mínimo entre lances:".length()).trim());
             } else if (line.startsWith("Maior lance atual:")) {
                 TF_LanceAtual.setText(line.substring("Maior lance atual:".length()).trim());
             } else if (line.startsWith("Líder:")) {
@@ -211,7 +210,7 @@ public final class MainAuction extends javax.swing.JPanel {
             } else if (line.startsWith("Lance mínimo:")) {
                 TF_LanceInicial.setText(line.substring("Lance mínimo:".length()).trim());
             } else if (line.startsWith("Valor mínimo entre lances:")) {
-                LB_ValorMinEntreLances.setText(line.substring("Valor mínimo entre lances:".length()).trim());
+                LB_MinValueBetweenBids.setText(line.substring("Valor mínimo entre lances:".length()).trim());
             } else if (line.startsWith("Maior lance atual:")) {
                 TF_LanceAtual.setText(line.substring("Maior lance atual:".length()).trim());
             } else if (line.startsWith("Líder:")) {
@@ -234,18 +233,20 @@ public final class MainAuction extends javax.swing.JPanel {
 
     }
 
-    public void finishedAuction(String message) {
+    public void finishedAuction(String message) throws IOException {
         String[] parts = message.split(":");
         SwingUtilities.invokeLater(() -> {
-            LB_ItemLeiloado.setText("Leilão encerrado.");
-            LB_txtLance.setText(parts[1]);
-            LB_txtLance.setText("");
+            LB_ItemLeiloado.setText("Finished Auction.");
+            LB_txtBid.setText(parts[1]);
+            LB_txtBid.setText("");
+            LB_MinValueBetweenBids.setText("");
             TF_LanceAtual.setText("");
             TF_LanceInicial.setText("");
             TF_TempoRestante.setText("");
             TF_Usuario.setText("");
             BT_EnviarProposta.setEnabled(false);
         });
+        multicastClient.stopListening();
     }
 
     public void itemFinished(String message) {
@@ -265,10 +266,10 @@ public final class MainAuction extends javax.swing.JPanel {
     private javax.swing.JLabel LB_ItemLeiloado;
     private javax.swing.JLabel LB_LanceAtual;
     private javax.swing.JLabel LB_LanceInicial;
+    private javax.swing.JLabel LB_MinValueBetweenBids;
     private javax.swing.JLabel LB_TempoRestante;
     private javax.swing.JLabel LB_Usuario;
-    private javax.swing.JLabel LB_ValorMinEntreLances;
-    private javax.swing.JLabel LB_txtLance;
+    private javax.swing.JLabel LB_txtBid;
     private javax.swing.JTextField TF_LanceAtual;
     private javax.swing.JTextField TF_LanceInicial;
     private javax.swing.JTextField TF_Proposta;

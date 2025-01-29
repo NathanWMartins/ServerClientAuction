@@ -37,8 +37,6 @@ public final class ServerAuction {
             multicastSocket = new MulticastSocket(MULTICAST_PORT);
             this.keyRegistry = new KeyRegistry();
             this.cryptoUtils = new CryptoUtils();
-            keyRegistry.registerPublicKey("11111111111", cryptoUtils.stringToPublicKey("MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAwQE2546Kw5F80HCSWAQnjeL03RNzTWMzkVa4ttQU0VBMu88Eq1hBmyOWOjDtckq3RA5lcoE+LCgw5vUV5FKG934TIrFYORCWujflZ7qpkmCDjb0+ePcWQKS8/pPbQtw/2GWJ7HdqH9C0GK5abGM8OJc+kCQ6W8HCts1if/2UrnKI2+L4yrmOo1dpAWoLlzbmXtxFyRxxruTTgTQ7y5KSWVGwOzlqrOzZvP0YjFyzjIfsyVz/IOP5F7IZfK6dja/I1A4Old4qsGslIfmMHesHduXbCM5ZC1bJHqDLtpUkcjSr/A9M0iJQbWv7hA6g/0Q24XUN4B+NtFAs1ki5NhPGjQIDAQAB"));
-            keyRegistry.registerPublicKey("22222222222", cryptoUtils.stringToPublicKey("MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAu54fYijPozPW7sDGLgFwQZ8d12edkxl4MBaFRMMgwuQ/m0kDjueg+czWiZtRHb3TJV6LnVxhJSg2p2W7EMODO7a/A223EBgZI2UkN+BKGpvvNHu/bf/XO+rOWzafKLdt5+8OY59xHRrmDri4AaunKaPNggNbXtg4tF1IO0Bz2fv7kQF3niSF3bkImNU9RE8HgU25nXrJe6N+Vtli26lMzw3LrckRu2Ue9JSeaCXJtTqISHcsC4fRa8EN9rKbCx9yphkfmGg6VlLqvk0r1KCwCkWGnG3AC1p4b1flvjgCGTlW9KgZB8ccOXsG/5WXirxqJMAirD/RdsF+IkHmI5W4qwIDAQAB"));
             this.symmetricKey = cryptoUtils.generateSymmetricKey(); // Gera a chave simétrica para comunicação
             createItems();
         } catch (Exception ex) {
@@ -70,12 +68,6 @@ public final class ServerAuction {
                 Socket clientSocket = serverSocket.accept();
                 System.out.println("Client in!: " + clientSocket.getInetAddress());
 
-                synchronized (this) {
-                    connectedClients++;
-                    System.out.println("Clientes conectados: " + connectedClients);
-                    this.notify(); // Notifica que há novos clientes conectados
-                }
-
                 BufferedReader reader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
                 PrintWriter writer = new PrintWriter(clientSocket.getOutputStream(), true);
 
@@ -89,24 +81,34 @@ public final class ServerAuction {
                     String cpf = json.getString("cpf");
                     String message = json.getString("message");
                     String signatureBase64 = json.getString("signature");
-                    String publicKeyBase64 = json.getString("public_key");
+
+                    //Load client public key
+                    PublicKey clientPublicKey = keyRegistry.loadPublicKey(cpf);
 
                     if (keyRegistry.isRegistered(cpf)) {
                         byte[] signatureBytes = Base64.getDecoder().decode(signatureBase64);
-                        PublicKey publicKey = cryptoUtils.stringToPublicKey(publicKeyBase64);
-                        boolean signature = cryptoUtils.verifyClientSignature(message, signatureBytes, publicKey);
+                        boolean signature = cryptoUtils.verifyClientSignature(message, signatureBytes, clientPublicKey);
                         if (signature) {
                             System.out.println("Assinatura válida. Cliente autorizado!");
                             String keyBase64 = cryptoUtils.convertSymmetricKeyToBase64(symmetricKey);
                             // Responde com o endereço multicast e chave simétrica
                             JSONObject response = new JSONObject();
                             response.put("status", "AUTHORIZED");
-                            response.put("multicast_address", MULTICAST_ADDRESS);
-                            response.put("multicast_port", MULTICAST_PORT);
-                            response.put("symmetric_key", cryptoUtils.encryptSymmetricKeyRSA(keyBase64, publicKey));
-
+                            response.put("multicast_address", cryptoUtils.encryptWithRSA(MULTICAST_ADDRESS, clientPublicKey));
+                            response.put("multicast_port", cryptoUtils.encryptWithRSA(String.valueOf(MULTICAST_PORT), clientPublicKey));
+                            response.put("symmetric_key", cryptoUtils.encryptSymmetricKeyRSA(keyBase64, clientPublicKey));
+                            
+                            String jsonString = response.toString();
+                                                          
+                            synchronized (this) {
+                                connectedClients++;
+                                System.out.println("Clientes conectados: " + connectedClients);
+                                this.notify(); // Notifica que há novos clientes conectados
+                            }
+                            
                             System.out.println("Sending auction data...");
-                            writer.println(response.toString());
+                            
+                            writer.println(jsonString);
                         } else {
                             System.out.println("Assinatura inválida. Solicitação rejeitada.");
                             writer.println(new JSONObject().put("status", "UNAUTHORIZED").toString());
@@ -120,8 +122,7 @@ public final class ServerAuction {
                     writer.println(new JSONObject().put("status", "ERROR").toString());
                 }
 
-                clientSocket.close();  // Fechar a conexão após o processamento da requisição
-
+                clientSocket.close();
             }
         } catch (IOException | JSONException e) {
             Logger.getLogger(ServerAuction.class
@@ -137,7 +138,7 @@ public final class ServerAuction {
             System.out.println("Auction Started, Address: " + MULTICAST_ADDRESS + ", Port: " + MULTICAST_PORT);
 
             synchronized (this) {
-                while (connectedClients < 1) {
+                while (connectedClients < 2) {
                     System.out.println("Waiting for at least two connections...");
                     this.wait();
                 }
