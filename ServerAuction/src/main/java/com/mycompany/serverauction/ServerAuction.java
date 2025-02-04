@@ -17,17 +17,17 @@ import javax.crypto.SecretKey;
 public final class ServerAuction {
 
     private static final String MULTICAST_ADDRESS = "239.255.255.1";
-    private static final int MULTICAST_PORT = 5000, TCP_PORT = 6000;
-    private static ServerSocket serverSocket;
+    private static String finalMessage = "AUCTION_FINISHED: ";
+    private static final int MULTICAST_PORT = 5000, TCP_PORT = 7000;
     private MulticastSocket multicastSocket;
     private InetAddress groupAddress;
     private ExecutorService executor = Executors.newCachedThreadPool();
     private volatile boolean auctionRunning = true;
-    private int connectedClients = 0, itemsAuctioned = 0;
+    private int connectedClients = 0, itemsAuctioned = 0, currentHighestBid = 0;
     private AuctionItem currentItem;
-    private int currentHighestBid = 0;
     private String currentHighestBidder = "N/A";
     private List<AuctionItem> auctionItems;
+    private List<String> clients;
     private KeyRegistry keyRegistry;
     private SecretKey symmetricKey;
     private CryptoUtils cryptoUtils;
@@ -37,13 +37,13 @@ public final class ServerAuction {
             this.keyRegistry = new KeyRegistry();
             this.cryptoUtils = new CryptoUtils();
             this.symmetricKey = cryptoUtils.generateSymmetricKey();
-            createItems();
+            createLists();
         } catch (NoSuchAlgorithmException ex) {
             Logger.getLogger(ServerAuction.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
 
-    public void createItems() {
+    public void createLists() {
         /*auctionItems = Arrays.asList(
                 new AuctionItem("Notebook Dell Inspiron 15", 1000, 100),
                 new AuctionItem("Smartphone Samsung Galaxy S23", 800, 50),
@@ -55,10 +55,15 @@ public final class ServerAuction {
                 new AuctionItem("Notebook Dell Inspiron 15", 1000, 100),
                 new AuctionItem("Smartphone Samsung Galaxy S23", 800, 50)
         );
+        clients = Arrays.asList(
+                "11111111111",
+                "22222222222",
+                "33333333333"
+        );
     }
 
     public void verifyClient() throws Exception {
-        serverSocket = new ServerSocket(TCP_PORT);
+        ServerSocket serverSocket = new ServerSocket(TCP_PORT);
         try {
             System.out.println("Waiting for connections");
             while (true) {
@@ -79,10 +84,17 @@ public final class ServerAuction {
                     String cpf = json.getString("cpf");
                     String message = json.getString("message");
                     String signatureBase64 = json.getString("signature");
+                    
+                    boolean validCPF = true;
+                    if (!clients.contains(cpf)) {
+                        validCPF = false;
+                        System.out.println("CPF is not registered ");
+                        writer.println(new JSONObject().put("status", "ERROR").toString());
+                    }
 
                     PublicKey clientPublicKey = keyRegistry.loadPublicKey(cpf);
 
-                    if (keyRegistry.isRegistered(cpf)) {
+                    if (keyRegistry.isRegistered(cpf) && validCPF) {
                         byte[] signatureBytes = Base64.getDecoder().decode(signatureBase64);
                         boolean signature = cryptoUtils.verifyClientSignature(message, signatureBytes, clientPublicKey);
                         if (signature) {
@@ -133,7 +145,7 @@ public final class ServerAuction {
             multicastSocket.joinGroup(groupAddress);
 
             synchronized (this) {
-                while (connectedClients < 2) {
+                while (connectedClients < 1) {
                     System.out.println("Waiting for at least two connections...");
                     this.wait();
                 }
@@ -155,7 +167,7 @@ public final class ServerAuction {
                 handleBids();
 
                 ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
-                final AtomicInteger timeLeft = new AtomicInteger(15);
+                final AtomicInteger timeLeft = new AtomicInteger(30);
 
                 Runnable auctionTask = () -> {
                     if (timeLeft.get() > 0) {
@@ -302,9 +314,16 @@ public final class ServerAuction {
             if (currentHighestBid >= currentItem.getMinimumBid()) {
                 winnerMessage = "ITEM_FINISHED: Item: " + currentItem.getName() + ". Vencedor: " + currentHighestBidder
                         + ".Lance de R$" + currentHighestBid;
+                finalMessage += """
+                                
+                                Item: """ + currentItem.getName() + ". Vencedor: " + currentHighestBidder
+                        + ". Lance de R$" + currentHighestBid;
             } else {
                 winnerMessage = "ITEM_FINISHED: Leilão do item \"" + currentItem.getName() + "\" encerrado sem vencedores. Nenhum lance acima do lance mínimo.";
-            }
+                finalMessage += """
+                                
+                                Item: """ + currentItem.getName() + "\" encerrado sem vencedores";
+            }            
             byte[] buffer = winnerMessage.getBytes();
             DatagramPacket packet = new DatagramPacket(buffer, buffer.length, groupAddress, MULTICAST_PORT);
             multicastSocket.send(packet);
@@ -317,9 +336,7 @@ public final class ServerAuction {
     }
 
     private void closeAuction() {
-        try {
-            String finalMessage = "AUCTION_FINISHED: The auctioned items are over, thanks.";
-
+        try {           
             byte[] buffer = finalMessage.getBytes();
             DatagramPacket packet = new DatagramPacket(buffer, buffer.length, groupAddress, MULTICAST_PORT);
             multicastSocket.send(packet);
@@ -335,6 +352,12 @@ public final class ServerAuction {
     }
 
     public static void main(String[] args) throws Exception {
+        try {
+            InetAddress ip = InetAddress.getLocalHost();
+            System.out.println("IP do Servidor: " + ip.getHostAddress());
+        } catch (UnknownHostException e) {
+            System.err.println("Erro ao obter o IP do servidor: " + e.getMessage());
+        }
         ServerAuction server = new ServerAuction();
         ExecutorService executorMain = Executors.newFixedThreadPool(2);
         try {

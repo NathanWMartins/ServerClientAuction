@@ -10,7 +10,7 @@ import java.io.IOException;
 public class Views extends javax.swing.JFrame {
     static LoginAuction viewLogin;
     static MainAuction mainAuction;
-    
+    static SummaryAuction summaryAuction;
     
     public Views() throws IOException {
         initComponents();

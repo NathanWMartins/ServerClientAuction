@@ -22,6 +22,7 @@ public class KeyManager {
             KeyPair keyPair = keyGen.generateKeyPair();
             privateKey = keyPair.getPrivate();
             publicKey = keyPair.getPublic();
+            System.out.println(publicKey);
 
             String basePath = "C:\\Users\\Cliente\\OneDrive\\Imagens\\Documentos\\NetBeansProjects\\Auction\\resources\\key";
             String filePath = basePath + "\\" + cpf + "_publicKey.txt";

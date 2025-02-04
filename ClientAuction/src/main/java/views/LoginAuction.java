@@ -13,6 +13,8 @@ import org.json.JSONObject;
 /**
  *
  * @author Nathan
+ * tcp.port == 7000
+ * ip.addr == 239.255.255.1
  */
 public class LoginAuction extends javax.swing.JPanel {
 
@@ -63,8 +65,9 @@ public class LoginAuction extends javax.swing.JPanel {
         TF_CPF.setText("11111111111");
         add(TF_CPF, new org.netbeans.lib.awtextra.AbsoluteConstraints(270, 140, 200, 30));
 
-        BT_RequestAccess.setBackground(new java.awt.Color(102, 102, 102));
-        BT_RequestAccess.setForeground(new java.awt.Color(255, 255, 255));
+        BT_RequestAccess.setBackground(new java.awt.Color(255, 255, 255));
+        BT_RequestAccess.setFont(new java.awt.Font("Monospaced", 1, 12)); // NOI18N
+        BT_RequestAccess.setForeground(new java.awt.Color(0, 0, 0));
         BT_RequestAccess.setText("REQUEST ACCESS");
         BT_RequestAccess.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseClicked(java.awt.event.MouseEvent evt) {
@@ -96,7 +99,7 @@ public class LoginAuction extends javax.swing.JPanel {
             String signatureBase64 = Base64.getEncoder().encodeToString(signature);
 
             Socket socket;
-            socket = new Socket("127.0.0.1", 6000);
+            socket = new Socket("127.0.0.1", 7000);
             PrintWriter output = new PrintWriter(socket.getOutputStream(), true);
             BufferedReader input = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
@@ -136,13 +139,14 @@ public class LoginAuction extends javax.swing.JPanel {
                 janela.pack();
 
             } else {
-                System.out.println("Cliente não autorizado.");
+                System.out.println("Unauthorized client");
+                JOptionPane.showMessageDialog(this, "Unauthorized client ", "Erro", JOptionPane.ERROR_MESSAGE);
             }
 
             socket.close();
 
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "Erro ao enviar requisição: " + e.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Error sending requisition: " + e.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
         }
     }//GEN-LAST:event_BT_RequestAccessMouseClicked
 
