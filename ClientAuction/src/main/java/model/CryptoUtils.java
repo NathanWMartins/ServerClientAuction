@@ -2,6 +2,7 @@ package model;
 
 import java.nio.charset.StandardCharsets;
 import java.security.*;
+import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.Base64;
 import javax.crypto.*;
 import javax.crypto.spec.SecretKeySpec;
@@ -26,7 +27,7 @@ public class CryptoUtils {
     public String convertPublicKeyToBase64(PublicKey key) {
         return Base64.getEncoder().encodeToString(key.getEncoded());
     }
-    
+
     public String encryptMessageAES(String message, SecretKey secretKey) throws Exception {
         try {
             Cipher cipher = Cipher.getInstance("AES");
@@ -40,18 +41,15 @@ public class CryptoUtils {
             System.err.println("Erro ao criptografar a mensagem com AES: " + e.getMessage());
             throw new Exception("Erro ao criptografar a mensagem com AES", e);
         }
-    }   
+    }
 
     public String decryptMessageAES(String encryptedMessage, SecretKey symmetricKey) throws Exception {
         try {
-            // Configurar o cifrador para AES no modo de descriptografia
             Cipher cipher = Cipher.getInstance("AES");
             cipher.init(Cipher.DECRYPT_MODE, symmetricKey);
 
-            // Decodificar a mensagem criptografada de Base64 e descriptografá-la
             byte[] decryptedBytes = cipher.doFinal(Base64.getDecoder().decode(encryptedMessage));
 
-            // Retornar a mensagem descriptografada como String
             return new String(decryptedBytes);
         } catch (InvalidKeyException | NoSuchAlgorithmException | BadPaddingException | IllegalBlockSizeException | NoSuchPaddingException e) {
             throw new Exception("Erro ao descriptografar a mensagem AES: " + e.getMessage(), e);
@@ -59,20 +57,17 @@ public class CryptoUtils {
     }
 
     public String decryptMessageRSA(String encryptedMessageBase64, PrivateKey privateKey) throws Exception {
-        // Decodifica o Base64
         byte[] encryptedBytes = Base64.getDecoder().decode(encryptedMessageBase64);
 
-        // Inicializa o Cipher para descriptografia
         Cipher cipher = Cipher.getInstance("RSA");
         cipher.init(Cipher.DECRYPT_MODE, privateKey);
 
-        // Descriptografa os dados
         byte[] decryptedBytes = cipher.doFinal(encryptedBytes);
 
         // Retorna como string
         return new String(decryptedBytes);
     }
-    
+
     public String decryptSymmetricKey(String encryptedKey, PrivateKey privateKey) throws Exception {
         try {
             byte[] encryptedBytes = Base64.getDecoder().decode(encryptedKey);
@@ -84,9 +79,20 @@ public class CryptoUtils {
             throw new Exception("Erro ao descriptografar a chave simétrica: " + e.getMessage(), e);
         }
     }
-    
-    public SecretKey convertBase64ToSecretKey(String base64Key) {
+
+    public static SecretKey convertBase64ToSecretKey(String base64Key) {
         byte[] decodedKey = Base64.getDecoder().decode(base64Key);
         return new SecretKeySpec(decodedKey, 0, decodedKey.length, "AES");
-    }   
+    }
+
+    public static PrivateKey convertBase64ToPrivateKey(String base64Key) throws Exception {
+        try {
+            byte[] decodedKey = Base64.getDecoder().decode(base64Key);
+            PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(decodedKey);
+            KeyFactory keyFactory = KeyFactory.getInstance("RSA"); // Altere "RSA" se necessário
+            return keyFactory.generatePrivate(keySpec);
+        } catch (Exception e) {
+            throw new Exception("Erro ao converter Base64 para PrivateKey: " + e.getMessage(), e);
+        }
+    }
 }

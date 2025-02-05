@@ -3,13 +3,14 @@ package views;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.io.IOException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import javax.swing.JFrame;
-import javax.swing.JOptionPane;
-import javax.swing.SwingUtilities;
+import java.util.logging.*;
+import javax.crypto.SecretKey;
+import javax.swing.*;
+import model.CryptoUtils;
 import model.MulticastClient;
 import model.PlaySound;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 /**
  *
@@ -20,7 +21,9 @@ public final class MainAuction extends javax.swing.JPanel {
     private final PlaySound ps = new PlaySound();
     private MulticastClient multicastClient = null;
     private final String symmetricKey;
-    private String finalMessage = "";
+    private JSONObject finalMessage = new JSONObject();
+    private CryptoUtils cryptoUtils = new CryptoUtils();
+    private JSONArray finalMessages = new JSONArray();
 
     public MainAuction(String cpf, int multicastP, String multicastA, String symmetricKey) throws IOException {
         initComponents();
@@ -153,7 +156,6 @@ public final class MainAuction extends javax.swing.JPanel {
         try {
             int userBid = Integer.parseInt(TF_BidUser.getText().trim());
             int currentBid = Integer.parseInt(TF_CurrentBid.getText().replaceAll("[^0-9]", ""));
-
             if (userBid <= currentBid) {
                 JOptionPane.showMessageDialog(this, "The bid vlaue must be higher then the current bid.");
                 return;
@@ -175,7 +177,8 @@ public final class MainAuction extends javax.swing.JPanel {
     }//GEN-LAST:event_BT_SendBidMouseClicked
 
     private void BT_SummaryAuctionMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_BT_SummaryAuctionMouseClicked
-        Views.summaryAuction = new SummaryAuction(finalMessage);
+        System.out.println(finalMessages);
+        Views.summaryAuction = new SummaryAuction(finalMessages);
         JFrame janela = (JFrame) SwingUtilities.getWindowAncestor(Views.mainAuction);
         janela.getContentPane().remove(Views.mainAuction);
         janela.add(Views.summaryAuction, BorderLayout.CENTER);
@@ -183,7 +186,7 @@ public final class MainAuction extends javax.swing.JPanel {
     }//GEN-LAST:event_BT_SummaryAuctionMouseClicked
 
     public void startMulticastCommunication(int multicastP, String multicastA) throws IOException {
-        multicastClient = new MulticastClient(multicastA, multicastP);
+        multicastClient = new MulticastClient(multicastA, multicastP, CryptoUtils.convertBase64ToSecretKey(symmetricKey));
         new Thread(() -> {
             multicastClient.startListening(this);
         }).start();
@@ -199,70 +202,77 @@ public final class MainAuction extends javax.swing.JPanel {
     }
 
     public void startAuctionInfo(String message, String info) {
-        String[] lines = message.split(",");
-        if (info.equals("START_AUCTION")) {
-            ps.auctionStarted();
-        } else {
-            ps.newBuyer();
-        }
+        try {
+            JSONObject jsonMessage = new JSONObject(message);
 
-        for (int i = 1; i < lines.length; i++) {
-            String line = lines[i].trim();
-            if (line.startsWith("Item em leilão:")) {
-                LB_ItemAuctioned.setText(line.substring("Item em leilão:".length()).trim());
-            } else if (line.startsWith("Lance mínimo:")) {
-                TF_InicialBid.setText(line.substring("Lance mínimo:".length()).trim());
-            } else if (line.startsWith("Valor mínimo entre lances:")) {
-                LB_MinValueBetweenBids.setText(line.substring("Valor mínimo entre lances:".length()).trim());
-            } else if (line.startsWith("Maior lance atual:")) {
-                TF_CurrentBid.setText(line.substring("Maior lance atual:".length()).trim());
-            } else if (line.startsWith("Líder:")) {
-                TF_UserWinning.setText(line.substring("Líder:".length()).trim());
+            if (info.equals("START_AUCTION")) {
+                ps.auctionStarted();
+            } else {
+                ps.newBuyer();
             }
-        }
-        BT_SendBid.setEnabled(true);
+            SecretKey symmetricKeyConverted = cryptoUtils.convertBase64ToSecretKey(symmetricKey);
+            LB_ItemAuctioned.setText(cryptoUtils.decryptMessageAES(jsonMessage.getString("item"), symmetricKeyConverted));
+            TF_InicialBid.setText(cryptoUtils.decryptMessageAES(jsonMessage.getString("minimumBid"), symmetricKeyConverted));
+            LB_MinValueBetweenBids.setText(cryptoUtils.decryptMessageAES(jsonMessage.getString("minimumBetweenBids"), symmetricKeyConverted));
+            TF_CurrentBid.setText(cryptoUtils.decryptMessageAES(jsonMessage.getString("currentHighestBid"), symmetricKeyConverted));
+            TF_UserWinning.setText(cryptoUtils.decryptMessageAES(jsonMessage.getString("currentHighestBidder"), symmetricKeyConverted));
 
+            BT_SendBid.setEnabled(true);
+
+        } catch (Exception e) {
+            System.err.println("Error processing auction info: " + e.getMessage());
+        }
     }
 
-    public void newItemInfo(String message) {
-        ps.newItem();
+    public void newItemInfo(JSONObject jsonMessage) {
+        try {
+            ps.newItem();
 
-        String[] lines = message.split(",");
-        for (int i = 1; i < lines.length; i++) {
-            String line = lines[i].trim();
-            if (line.startsWith("Item em leilão:")) {
-                LB_ItemAuctioned.setText(line.substring("Item em leilão:".length()).trim());
-                LB_ItemAuctioned.setAlignmentX(CENTER_ALIGNMENT);
-            } else if (line.startsWith("Lance mínimo:")) {
-                TF_InicialBid.setText(line.substring("Lance mínimo:".length()).trim());
-            } else if (line.startsWith("Valor mínimo entre lances:")) {
-                LB_MinValueBetweenBids.setText(line.substring("Valor mínimo entre lances:".length()).trim());
-            } else if (line.startsWith("Maior lance atual:")) {
-                TF_CurrentBid.setText(line.substring("Maior lance atual:".length()).trim());
-            } else if (line.startsWith("Líder:")) {
-                TF_UserWinning.setText(line.substring("Líder:".length()).trim());
-            }
+            SecretKey symmetricKeyConverted = cryptoUtils.convertBase64ToSecretKey(symmetricKey);
+            // Decrypt and process each key
+            String item = jsonMessage.has("item") ? cryptoUtils.decryptMessageAES(jsonMessage.getString("item"), symmetricKeyConverted) : "";
+            String minimumBetweenBids = jsonMessage.has("minimumBetweenBids") ? cryptoUtils.decryptMessageAES(jsonMessage.getString("minimumBetweenBids"), symmetricKeyConverted) : "";
+            String minimumBid = jsonMessage.has("minimumBid") ? cryptoUtils.decryptMessageAES(jsonMessage.getString("minimumBid"), symmetricKeyConverted) : "";
+            String currentHighestBid = jsonMessage.has("currentHighestBid") ? cryptoUtils.decryptMessageAES(jsonMessage.getString("currentHighestBid"), symmetricKeyConverted) : "";
+            String currentHighestBidder = jsonMessage.has("currentHighestBidder") ? cryptoUtils.decryptMessageAES(jsonMessage.getString("currentHighestBidder"), symmetricKeyConverted) : "";
+
+            // Process decrypted values and update components
+            LB_ItemAuctioned.setText(item);
+            TF_InicialBid.setText(minimumBid);
+            LB_MinValueBetweenBids.setText(minimumBetweenBids);
+            TF_CurrentBid.setText(currentHighestBid);
+            TF_UserWinning.setText(currentHighestBidder);
+
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-
     }
 
     public void updateTime(String message) {
-        String[] parts = message.split(":");
-        int timeLeft = Integer.parseInt(parts[1]);
-        TF_TimeLeft.setText(timeLeft + "s");
-        if (timeLeft <= 5) {
-            TF_TimeLeft.setForeground(Color.red);
-            ps.playBip();
-        } else {
-            TF_TimeLeft.setForeground(Color.black);
+        try {
+            JSONObject jsonMessage = new JSONObject(message);
+            int timeLeft = Integer.parseInt(cryptoUtils.decryptMessageAES(jsonMessage.getString("time"), cryptoUtils.convertBase64ToSecretKey(symmetricKey)));
+
+            TF_TimeLeft.setText(String.valueOf(timeLeft));
+
+            if (timeLeft <= 5) {
+                TF_TimeLeft.setForeground(Color.red);
+                ps.playBip();
+            } else {
+                TF_TimeLeft.setForeground(Color.black);
+            }
+
+        } catch (Exception e) {
+            System.err.println("Error processing time update: " + e.getMessage());
         }
     }
 
     public void finishedAuction(String message) throws IOException {
-        String[] parts = message.split(":");
+        JSONObject auctionFinishJson = new JSONObject(message);
+        finalMessage = auctionFinishJson;
         SwingUtilities.invokeLater(() -> {
             LB_ItemAuctioned.setText("Finished Auction.");
-            LB_txtBid.setText(parts[1]);
+            LB_txtBid.setText("");
             LB_txtBid.setText("");
             LB_MinValueBetweenBids.setText("");
             TF_CurrentBid.setText("");
@@ -274,28 +284,55 @@ public final class MainAuction extends javax.swing.JPanel {
         multicastClient.stopListening();
         BT_SummaryAuction.setVisible(true);
         BT_SummaryAuction.setEnabled(true);
-        finalMessage = message;
     }
 
-    public void itemFinished(String message) {
-        String[] parts = message.split(":");
-        String winnerMessage = "";
-        for (int i = 1; i < parts.length; i++) {
-            winnerMessage += parts[i];
+    public void itemFinished(JSONObject winnerJson) {
+        try {
+            String winnerMessage = "";
+
+            String item = cryptoUtils.decryptMessageAES(winnerJson.getString("item"), cryptoUtils.convertBase64ToSecretKey(symmetricKey));
+            String winner = cryptoUtils.decryptMessageAES(winnerJson.getString("winner"), cryptoUtils.convertBase64ToSecretKey(symmetricKey));
+            int bid = 0;
+            if (winnerJson.has("bid")) {
+                bid = Integer.parseInt(cryptoUtils.decryptMessageAES(winnerJson.getString("bid"), cryptoUtils.convertBase64ToSecretKey(symmetricKey)));
+            }
+            String message = "";
+            if (winnerJson.has("message")) {
+                message = cryptoUtils.decryptMessageAES(winnerJson.getString("message"), cryptoUtils.convertBase64ToSecretKey(symmetricKey));
+            }
+
+            JSONObject json = new JSONObject();
+            json.put("item", item);
+            json.put("winner", winner);
+            json.put("bid", String.valueOf(bid));
+            json.put("message", message);
+            finalMessages.put(json);
+
+            winnerMessage += "Item: " + item + "\n";
+            if (winnerJson.has("winner") && !winner.equals("Nenhum")) {
+                winnerMessage += "Vencedor: " + winner + "\n";
+                winnerMessage += "Lance de: R$" + bid;
+            } else {
+                winnerMessage += message;
+            }
+            JOptionPane.showMessageDialog(null, winnerMessage, "Winner", JOptionPane.INFORMATION_MESSAGE);
+
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-        JOptionPane.showMessageDialog(null, winnerMessage, "Winner", JOptionPane.INFORMATION_MESSAGE);
     }
 
     public void informClientWaitItem(String message) {
-        String[] parts = message.split(":");
-        if (Integer.parseInt(parts[1]) == 1) {
+        JSONObject jsonMessage = new JSONObject(message);
+        int timeLeft = jsonMessage.getInt("time");
+
+        if (timeLeft == 1) {
             BT_SendBid.setEnabled(true);
             LB_ItemAuctioned.setText("Waiting");
         } else {
             BT_SendBid.setEnabled(false);
             LB_ItemAuctioned.setText("Wait for the item time is over");
         }
-
     }
 
 

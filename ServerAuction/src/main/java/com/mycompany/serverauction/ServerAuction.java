@@ -18,6 +18,7 @@ public final class ServerAuction {
 
     private static final String MULTICAST_ADDRESS = "239.255.255.1";
     private static String finalMessage = "AUCTION_FINISHED: ";
+    private JSONArray finalMessages = new JSONArray();
     private static final int MULTICAST_PORT = 5000, TCP_PORT = 7000;
     private MulticastSocket multicastSocket;
     private InetAddress groupAddress;
@@ -63,7 +64,7 @@ public final class ServerAuction {
     }
 
     public void verifyClient() throws Exception {
-        ServerSocket serverSocket = new ServerSocket(TCP_PORT);
+        ServerSocket serverSocket = new ServerSocket(TCP_PORT, 50, InetAddress.getByName("0.0.0.0"));
         try {
             System.out.println("Waiting for connections");
             while (true) {
@@ -84,7 +85,7 @@ public final class ServerAuction {
                     String cpf = json.getString("cpf");
                     String message = json.getString("message");
                     String signatureBase64 = json.getString("signature");
-                    
+
                     boolean validCPF = true;
                     if (!clients.contains(cpf)) {
                         validCPF = false;
@@ -92,7 +93,8 @@ public final class ServerAuction {
                         writer.println(new JSONObject().put("status", "ERROR").toString());
                     }
 
-                    PublicKey clientPublicKey = keyRegistry.loadPublicKey(cpf);
+                    //PublicKey clientPublicKey = keyRegistry.loadPublicKey(cpf);
+                    PublicKey clientPublicKey = keyRegistry.loadPublicKeyBase64(cpf);
 
                     if (keyRegistry.isRegistered(cpf) && validCPF) {
                         byte[] signatureBytes = Base64.getDecoder().decode(signatureBase64);
@@ -167,7 +169,7 @@ public final class ServerAuction {
                 handleBids();
 
                 ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
-                final AtomicInteger timeLeft = new AtomicInteger(30);
+                final AtomicInteger timeLeft = new AtomicInteger(15);
 
                 Runnable auctionTask = () -> {
                     if (timeLeft.get() > 0) {
@@ -202,32 +204,23 @@ public final class ServerAuction {
     private void broadcastAuctionInfo(String info) throws InterruptedException {
         executor.submit(() -> {
             try {
-                String message = "";
-                if (info.equals("newWinner")) {
-                    message = "NEW_WINNER:"
-                            + ",Item em leilão: " + currentItem.getName()
-                            + ",Valor mínimo entre lances: " + currentItem.getMinimumBetweenBids()
-                            + ",Lance mínimo: R$" + currentItem.getMinimumBid()
-                            + ",Maior lance atual: R$" + currentHighestBid
-                            + ",Líder: " + currentHighestBidder;
-                } else {
-                    if (itemsAuctioned == 1) {
-                        message = "START_AUCTION:"
-                                + ",Item em leilão: " + currentItem.getName()
-                                + ",Valor mínimo entre lances: " + currentItem.getMinimumBetweenBids()
-                                + ",Lance mínimo: R$" + currentItem.getMinimumBid()
-                                + ",Maior lance atual: R$" + currentHighestBid
-                                + ",Líder: " + currentHighestBidder;
-                    } else {
-                        message = "NEW_ITEM:"
-                                + ",Item em leilão: " + currentItem.getName()
-                                + ",Valor mínimo entre lances: " + currentItem.getMinimumBetweenBids()
-                                + ",Lance mínimo: R$" + currentItem.getMinimumBid()
-                                + ",Maior lance atual: R$" + currentHighestBid
-                                + ",Líder: " + currentHighestBidder;
-                    }
-                }
+                JSONObject jsonMessage = new JSONObject();
 
+                if (info.equals("newWinner")) {
+                    jsonMessage.put("type", "NEW_WINNER");
+                } else if (itemsAuctioned == 1) {
+                    jsonMessage.put("type", "START_AUCTION");
+                } else {
+                    jsonMessage.put("type", "NEW_ITEM");
+                }
+                String symmetricKeyBase64 = cryptoUtils.convertSymmetricKeyToBase64(symmetricKey);
+                jsonMessage.put("item", cryptoUtils.encryptAuctionsMessageAES(String.valueOf(currentItem.getName()), symmetricKeyBase64));
+                jsonMessage.put("minimumBetweenBids", cryptoUtils.encryptAuctionsMessageAES(String.valueOf(currentItem.getMinimumBetweenBids()), symmetricKeyBase64));
+                jsonMessage.put("minimumBid", cryptoUtils.encryptAuctionsMessageAES(String.valueOf(currentItem.getMinimumBid()), symmetricKeyBase64));
+                jsonMessage.put("currentHighestBid", cryptoUtils.encryptAuctionsMessageAES(String.valueOf(currentHighestBid), symmetricKeyBase64));
+                jsonMessage.put("currentHighestBidder", cryptoUtils.encryptAuctionsMessageAES(String.valueOf(currentHighestBidder), symmetricKeyBase64));
+
+                String message = jsonMessage.toString();
                 byte[] buffer = message.getBytes();
                 DatagramPacket pkt = new DatagramPacket(buffer, buffer.length, groupAddress, MULTICAST_PORT);
                 multicastSocket.send(pkt);
@@ -236,6 +229,8 @@ public final class ServerAuction {
 
             } catch (IOException e) {
                 System.err.println("Error sending info: " + e.getMessage());
+            } catch (Exception ex) {
+                Logger.getLogger(ServerAuction.class.getName()).log(Level.SEVERE, null, ex);
             }
         });
     }
@@ -258,20 +253,21 @@ public final class ServerAuction {
                         continue;
                     }
 
-                    if (!bidMessage.startsWith("BID:")) {
-                        System.out.println("Ignored message (not a user bid): " + bidMessage);
+                    JSONObject jsonBid;
+                    try {
+                        jsonBid = new JSONObject(bidMessage);
+                    } catch (Exception e) {
+                        System.err.println("Invalid JSON format: " + bidMessage);
                         continue;
                     }
 
-                    String[] parts = bidMessage.substring(4).split(",");
-                    if (parts.length < 2) {
-                        System.err.println("Invalid message format: " + bidMessage);
+                    if (!jsonBid.has("type") || !jsonBid.getString("type").equals("BID")) {
+                        System.out.println("Ignored message (not a bid): " + bidMessage);
                         continue;
                     }
 
-                    String bidderCPF = parts[0].split(":")[1].trim();
-                    int bidValue = Integer.parseInt(parts[1].split(":")[1].trim());
-
+                    String bidderCPF = jsonBid.getString("cpf");
+                    int bidValue = jsonBid.getInt("value");
                     synchronized (this) {
                         if (bidValue > currentHighestBid && bidValue >= currentItem.getMinimumBid()) {
                             currentHighestBid = bidValue;
@@ -284,60 +280,90 @@ public final class ServerAuction {
                 } catch (IOException e) {
                     if (auctionRunning) {
                         System.err.println("Error receiving bid: " + e.getMessage());
-
                     }
-                } catch (ArrayIndexOutOfBoundsException | InterruptedException | NumberFormatException ex) {
-                    Logger.getLogger(ServerAuction.class
-                            .getName()).log(Level.SEVERE, null, ex);
+                } catch (Exception ex) {
+                    Logger.getLogger(ServerAuction.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }
         });
     }
 
     private void sendTime(int time) {
-        String timeMessage = "TIME_LEFT:" + time;
-        byte[] buffer = timeMessage.getBytes();
-
         try (DatagramSocket socket = new DatagramSocket()) {
+            // Criando o JSON com as informações de tempo
+            JSONObject jsonTime = new JSONObject();
+            jsonTime.put("type", "TIME_LEFT");
+            jsonTime.put("time", cryptoUtils.encryptAuctionsMessageAES(String.valueOf(time), cryptoUtils.convertSymmetricKeyToBase64(symmetricKey)));
+
+            // Convertendo o JSON para string e depois para bytes
+            String timeMessage = jsonTime.toString();
+            byte[] buffer = timeMessage.getBytes();
+
             groupAddress = InetAddress.getByName(MULTICAST_ADDRESS);
             DatagramPacket packet = new DatagramPacket(buffer, buffer.length, groupAddress, MULTICAST_PORT);
+
             socket.send(packet);
-            System.out.println("Time left sended: " + time + " seconds");
+            System.out.println("Time left sent: " + time + " seconds");
         } catch (IOException e) {
-            System.err.println("Erroe sending the time left: " + e.getMessage());
+            System.err.println("Error sending the time left: " + e.getMessage());
+        } catch (Exception ex) {
+            Logger.getLogger(ServerAuction.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
 
     private void announceWinner() throws InterruptedException {
         try {
-            String winnerMessage;
+            JSONObject winnerJson = new JSONObject();
+
+            winnerJson.put("type", "ITEM_FINISHED");
+            winnerJson.put("item", cryptoUtils.encryptAuctionsMessageAES(currentItem.getName(), cryptoUtils.convertSymmetricKeyToBase64(symmetricKey)));
+
             if (currentHighestBid >= currentItem.getMinimumBid()) {
-                winnerMessage = "ITEM_FINISHED: Item: " + currentItem.getName() + ". Vencedor: " + currentHighestBidder
-                        + ".Lance de R$" + currentHighestBid;
-                finalMessage += """
-                                
-                                Item: """ + currentItem.getName() + ". Vencedor: " + currentHighestBidder
-                        + ". Lance de R$" + currentHighestBid;
+                winnerJson.put("winner", cryptoUtils.encryptAuctionsMessageAES(currentHighestBidder, cryptoUtils.convertSymmetricKeyToBase64(symmetricKey)));
+                winnerJson.put("bid", cryptoUtils.encryptAuctionsMessageAES(String.valueOf(currentHighestBid), cryptoUtils.convertSymmetricKeyToBase64(symmetricKey)));
+
+                JSONObject itemJson = new JSONObject();
+                itemJson.put("item", cryptoUtils.encryptAuctionsMessageAES(currentItem.getName(), cryptoUtils.convertSymmetricKeyToBase64(symmetricKey)));
+                itemJson.put("winner", cryptoUtils.encryptAuctionsMessageAES(currentHighestBidder, cryptoUtils.convertSymmetricKeyToBase64(symmetricKey)));
+                itemJson.put("bid", cryptoUtils.encryptAuctionsMessageAES(String.valueOf(currentHighestBid), cryptoUtils.convertSymmetricKeyToBase64(symmetricKey)));
+                finalMessages.put(itemJson);
+
             } else {
-                winnerMessage = "ITEM_FINISHED: Leilão do item \"" + currentItem.getName() + "\" encerrado sem vencedores. Nenhum lance acima do lance mínimo.";
-                finalMessage += """
-                                
-                                Item: """ + currentItem.getName() + "\" encerrado sem vencedores";
-            }            
+                winnerJson.put("winner", cryptoUtils.encryptAuctionsMessageAES("Nenhum", cryptoUtils.convertSymmetricKeyToBase64(symmetricKey)));
+                winnerJson.put("message", cryptoUtils.encryptAuctionsMessageAES("Leilão do item \"" + currentItem.getName() + "\" encerrado sem vencedores. Nenhum lance acima do lance mínimo.", cryptoUtils.convertSymmetricKeyToBase64(symmetricKey)));
+
+                JSONObject itemJson = new JSONObject();
+                itemJson.put("item", cryptoUtils.encryptAuctionsMessageAES(currentItem.getName(), cryptoUtils.convertSymmetricKeyToBase64(symmetricKey)));
+                itemJson.put("winner", cryptoUtils.encryptAuctionsMessageAES("Nenhum", cryptoUtils.convertSymmetricKeyToBase64(symmetricKey)));
+                itemJson.put("message", cryptoUtils.encryptAuctionsMessageAES("Leilão encerrado sem vencedores", cryptoUtils.convertSymmetricKeyToBase64(symmetricKey)));
+                finalMessages.put(itemJson);
+            }
+
+            String winnerMessage = winnerJson.toString();
             byte[] buffer = winnerMessage.getBytes();
+
+            // Envia o pacote multicast
             DatagramPacket packet = new DatagramPacket(buffer, buffer.length, groupAddress, MULTICAST_PORT);
             multicastSocket.send(packet);
             Thread.sleep(4000);
 
-            System.out.println(winnerMessage);
+            System.out.println("Winner announced: " + winnerMessage);
         } catch (IOException e) {
             System.err.println("Error announcing winner: " + e.getMessage());
+        } catch (Exception ex) {
+            Logger.getLogger(ServerAuction.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
 
     private void closeAuction() {
-        try {           
-            byte[] buffer = finalMessage.getBytes();
+        try {
+            JSONObject auctionFinishJson = new JSONObject();
+
+            auctionFinishJson.put("type", "AUCTION_FINISHED");
+            //auctionFinishJson.put("items", finalMessages);
+            String jsonString = auctionFinishJson.toString();
+
+            byte[] buffer = jsonString.getBytes();
             DatagramPacket packet = new DatagramPacket(buffer, buffer.length, groupAddress, MULTICAST_PORT);
             multicastSocket.send(packet);
 

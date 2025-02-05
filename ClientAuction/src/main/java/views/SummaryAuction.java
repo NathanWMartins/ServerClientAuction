@@ -1,17 +1,46 @@
 package views;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+
 /**
  *
  * @author Nathan
  */
 public class SummaryAuction extends javax.swing.JPanel {
 
-    public SummaryAuction(String finalMessage) {
+    public SummaryAuction(JSONArray items) {
         initComponents();
-        String[] lines = finalMessage.split(":");
-        for (int i = 1; i < lines.length; i++) {
-            TA_Summary.append(lines[i]);
-        }        
+        StringBuilder result = new StringBuilder();
+
+        for (int i = 0; i < items.length(); i++) {
+            JSONObject item = items.getJSONObject(i);
+
+            String itemName = item.getString("item");
+            String winner = item.getString("winner");
+            String bidMessage = "";
+
+            // Verifica se o vencedor é "Nenhum"
+            if ("Nenhum".equals(winner)) {
+                String messageText = item.getString("message");
+                bidMessage = "Leilão encerrado sem vencedores: " + messageText;
+            } else {
+                // Quando houver um vencedor, pega o lance
+                if (item.has("bid") && !item.getString("bid").isEmpty()) {
+                    double bid = item.getDouble("bid");
+                    bidMessage = "Vencedor: " + winner + " - Lance de: R$" + bid;
+                } else {
+                    bidMessage = "Vencedor: " + winner + " - Lance não disponível";
+                }
+            }
+
+            // Adiciona as informações ao resultado
+            result.append("\nItem: ").append(itemName)
+                    .append("\n").append(bidMessage).append("\n");
+        }
+
+        // Preenche o TextArea com o resultado
+        TA_Summary.setText(result.toString());
     }
 
     @SuppressWarnings("unchecked")
@@ -33,7 +62,7 @@ public class SummaryAuction extends javax.swing.JPanel {
         add(jLabel1, new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 33, 240, 50));
 
         jSeparator2.setForeground(new java.awt.Color(0, 0, 0));
-        add(jSeparator2, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 380, 490, 20));
+        add(jSeparator2, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 380, 560, 20));
 
         TA_Summary.setBackground(new java.awt.Color(255, 255, 255));
         TA_Summary.setColumns(20);
@@ -42,10 +71,10 @@ public class SummaryAuction extends javax.swing.JPanel {
         TA_Summary.setRows(5);
         jScrollPane1.setViewportView(TA_Summary);
 
-        add(jScrollPane1, new org.netbeans.lib.awtextra.AbsoluteConstraints(30, 100, 430, 270));
+        add(jScrollPane1, new org.netbeans.lib.awtextra.AbsoluteConstraints(30, 100, 480, 270));
 
         jSeparator3.setForeground(new java.awt.Color(0, 0, 0));
-        add(jSeparator3, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 70, 490, 20));
+        add(jSeparator3, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 70, 560, 20));
     }// </editor-fold>//GEN-END:initComponents
 
 
