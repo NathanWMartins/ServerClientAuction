@@ -14,39 +14,7 @@ public class KeyManager {
     private PublicKey publicKey;
 
     public KeyManager() throws IOException {
-    }
-
-    public void generateAndSaveKeyPair(String cpf) throws IOException {
-        try {
-            KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
-            keyGen.initialize(2048);
-            KeyPair keyPair = keyGen.generateKeyPair();
-            privateKey = keyPair.getPrivate();
-            publicKey = keyPair.getPublic();
-
-            String basePath = "C:\\Users\\Cliente\\OneDrive\\Imagens\\Documentos\\NetBeansProjects\\Auction\\resources\\key";
-            String filePath = basePath + "\\" + cpf + "_publicKey.txt";
-
-            try {
-                File publicKeyFile = new File(filePath);
-
-                if (publicKeyFile.exists()) {
-                    publicKeyFile.delete();
-                }
-
-                publicKeyFile.createNewFile();
-
-                try (FileOutputStream fos = new FileOutputStream(publicKeyFile)) {
-                    fos.write(publicKey.getEncoded());
-                    fos.flush();
-                }
-            } catch (IOException e) {
-                System.err.println("Error saving publick key: " + e.getMessage());
-            }
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException("Error generating key pair: " + e.getMessage(), e);
-        }
-    }
+    }  
     
     public void savePublicKeyBase64(String cpf, String base64PublicKey) {
         String filePath = "C:\\Users\\Cliente\\OneDrive\\Imagens\\Documentos\\NetBeansProjects\\Auction\\resources\\key\\" 

@@ -16,12 +16,12 @@ import org.json.JSONObject;
 public class LoginAuction extends javax.swing.JPanel {
 
     private final KeyManager keyManager;
-    private final CryptoUtils cryptoUtils;
+    private final CryptoUtilsClient cryptoUtils;
     private List<Users> listUsers;
 
     public LoginAuction() throws IOException {
         this.keyManager = new KeyManager();
-        this.cryptoUtils = new CryptoUtils();
+        this.cryptoUtils = new CryptoUtilsClient();
         createUsers();
         initComponents();
     }
@@ -105,22 +105,16 @@ public class LoginAuction extends javax.swing.JPanel {
             if (cpf.equals(users.getCpf())) {
                 user = users;
                 break;
-            }
+                }
         }
         keyManager.savePublicKeyBase64(cpf, user.getPublicKeyBase64());
-        /*try {
-            keyManager.generateAndSaveKeyPair(cpf);            
-        } catch (IOException ex) {
-            Logger.getLogger(LoginAuction.class.getName()).log(Level.SEVERE, null, ex);
-        }*/
-        try {
-            System.out.println("Private Key: " + keyManager.getPrivateKey());
 
+        try {
             byte[] signature = cryptoUtils.generateSignature(message, cryptoUtils.convertBase64ToPrivateKey(user.getPrivateKeyBase64()));
             String signatureBase64 = Base64.getEncoder().encodeToString(signature);
                                     
             Socket socket;
-            socket = new Socket("127.0.0.1", 7000);
+            socket = new Socket("192.168.107.141", 7000);
             PrintWriter output = new PrintWriter(socket.getOutputStream(), true);
             BufferedReader input = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 

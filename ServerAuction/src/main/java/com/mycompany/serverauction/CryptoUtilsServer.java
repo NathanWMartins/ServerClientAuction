@@ -11,7 +11,7 @@ import javax.crypto.spec.SecretKeySpec;
  *
  * @author Nathan
  */
-public class CryptoUtils {
+public class CryptoUtilsServer {
 
     public PublicKey stringToPublicKey(String publicKeyStr) throws Exception {
         try {
@@ -42,7 +42,6 @@ public class CryptoUtils {
         return true;
     }
     
-    //TODO: Remover se nao precisar da função
     public String encryptSymmetricKeyRSA(String symmetricKey, PublicKey publicKey) throws Exception {
         Cipher cipher = Cipher.getInstance("RSA");
         cipher.init(Cipher.ENCRYPT_MODE, publicKey);

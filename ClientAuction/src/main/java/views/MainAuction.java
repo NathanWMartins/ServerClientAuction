@@ -6,7 +6,7 @@ import java.io.IOException;
 import java.util.logging.*;
 import javax.crypto.SecretKey;
 import javax.swing.*;
-import model.CryptoUtils;
+import model.CryptoUtilsClient;
 import model.MulticastClient;
 import model.PlaySound;
 import org.json.JSONArray;
@@ -22,7 +22,7 @@ public final class MainAuction extends javax.swing.JPanel {
     private MulticastClient multicastClient = null;
     private final String symmetricKey;
     private JSONObject finalMessage = new JSONObject();
-    private CryptoUtils cryptoUtils = new CryptoUtils();
+    private CryptoUtilsClient cryptoUtils = new CryptoUtilsClient();
     private JSONArray finalMessages = new JSONArray();
 
     public MainAuction(String cpf, int multicastP, String multicastA, String symmetricKey) throws IOException {
@@ -186,7 +186,7 @@ public final class MainAuction extends javax.swing.JPanel {
     }//GEN-LAST:event_BT_SummaryAuctionMouseClicked
 
     public void startMulticastCommunication(int multicastP, String multicastA) throws IOException {
-        multicastClient = new MulticastClient(multicastA, multicastP, CryptoUtils.convertBase64ToSecretKey(symmetricKey));
+        multicastClient = new MulticastClient(multicastA, multicastP, CryptoUtilsClient.convertBase64ToSecretKey(symmetricKey));
         new Thread(() -> {
             multicastClient.startListening(this);
         }).start();

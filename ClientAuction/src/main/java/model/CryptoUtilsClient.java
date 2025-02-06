@@ -11,7 +11,7 @@ import javax.crypto.spec.SecretKeySpec;
  *
  * @author Nathan
  */
-public class CryptoUtils {
+public class CryptoUtilsClient {
 
     public byte[] generateSignature(String message, PrivateKey privateKey) throws Exception {
         MessageDigest digest = MessageDigest.getInstance("SHA-256");

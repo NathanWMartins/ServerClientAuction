@@ -16,7 +16,7 @@ import javax.crypto.SecretKey;
  */
 public final class ServerAuction {
 
-    private static final String MULTICAST_ADDRESS = "239.255.255.1";
+    private static final String MULTICAST_ADDRESS = "239.255.1.1";
     private static String finalMessage = "AUCTION_FINISHED: ";
     private JSONArray finalMessages = new JSONArray();
     private static final int MULTICAST_PORT = 5000, TCP_PORT = 7000;
@@ -31,12 +31,12 @@ public final class ServerAuction {
     private List<String> clients;
     private KeyRegistry keyRegistry;
     private SecretKey symmetricKey;
-    private CryptoUtils cryptoUtils;
+    private CryptoUtilsServer cryptoUtils;
 
     public ServerAuction() throws NoSuchAlgorithmException {
         try {
             this.keyRegistry = new KeyRegistry();
-            this.cryptoUtils = new CryptoUtils();
+            this.cryptoUtils = new CryptoUtilsServer();
             this.symmetricKey = cryptoUtils.generateSymmetricKey();
             createLists();
         } catch (NoSuchAlgorithmException ex) {
@@ -144,8 +144,9 @@ public final class ServerAuction {
         try {
             multicastSocket = new MulticastSocket(MULTICAST_PORT);
             groupAddress = InetAddress.getByName(MULTICAST_ADDRESS);
-            multicastSocket.joinGroup(groupAddress);
-
+            NetworkInterface networkInterface = NetworkInterface.getByName("Wi-Fi");
+            multicastSocket.joinGroup(new InetSocketAddress(groupAddress, MULTICAST_PORT), networkInterface);
+            
             synchronized (this) {
                 while (connectedClients < 1) {
                     System.out.println("Waiting for at least two connections...");
@@ -161,7 +162,7 @@ public final class ServerAuction {
                 currentHighestBid = item.getMinimumBid() - 1;
                 currentHighestBidder = "N/A";
 
-                Thread.sleep(3000);
+                Thread.sleep(5000);
 
                 broadcastAuctionInfo("");
 

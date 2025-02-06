@@ -20,7 +20,7 @@ public class MulticastClient {
     private boolean running = true;
     private final InetAddress groupAddress;
     private final MulticastSocket multicastSocket;
-    private final CryptoUtils crypto = new CryptoUtils();
+    private final CryptoUtilsClient crypto = new CryptoUtilsClient();
     private int contMessage = 0;
     private boolean newClient = false;
     private SecretKey symmetricKey = null;
@@ -28,14 +28,15 @@ public class MulticastClient {
     public MulticastClient(String address, int port, SecretKey symmetric) throws IOException {
         this.MULTICAST_ADDRESS = address;
         this.MULTICAST_PORT = port;
-        this.symmetricKey = symmetric;
-        groupAddress = InetAddress.getByName(MULTICAST_ADDRESS);
+        this.symmetricKey = symmetric;        
         multicastSocket = new MulticastSocket(MULTICAST_PORT);
+        groupAddress = InetAddress.getByName(MULTICAST_ADDRESS);
     }
 
     public void startListening(MainAuction mainAuctionPanel) {
         try {
-            multicastSocket.joinGroup(groupAddress);
+            NetworkInterface networkInterface = NetworkInterface.getByName("Wi-Fi");
+            multicastSocket.joinGroup(new InetSocketAddress(groupAddress, MULTICAST_PORT), networkInterface);
             System.out.println("Client connected, " + MULTICAST_ADDRESS + ":" + MULTICAST_PORT);
 
             byte[] buffer = new byte[1024];
